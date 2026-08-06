@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>昭朝工作台</title>
+<link rel="icon" type="image/jpeg" href="favicon.jpg">
+<link rel="apple-touch-icon" href="favicon.jpg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f46e5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="昭朝工作台">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- 顶部状态栏 -->
+  <header class="top-bar">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <img src="favicon.jpg" alt="昭朝">
+      </div>
+      <span class="logo-text">昭朝工作台</span>
+    </div>
+    <div class="status-area">
+      <span class="status-dot pulse"></span>
+      <span class="status-text" id="statusText">本地存储</span>
+      <span class="time-display" id="timeDisplay">--</span>
+    </div>
+    <button class="share-btn" onclick="shareWorkspace()" title="分享链接">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+    </button>
+  </header>
+
+  <div class="main-layout">
+    <!-- 桌面端侧边栏 -->
+    <nav class="sidebar" id="sidebar">
+      <div class="nav-header">导航</div>
+      <div class="nav-items" id="navItems"></div>
+      <div class="nav-divider"></div>
+      <div class="nav-items" id="navBottomItems"></div>
+      <div class="nav-footer">
+        <button class="nav-add-btn" onclick="addModule()">+ 添加模块</button>
+      </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="content" id="mainContent">
+      <!-- Dashboard 页面 -->
+      <section class="page active" id="page-dashboard">
+        <div class="dashboard-grid" id="dashboardGrid">
+          <!-- 动态渲染 -->
+        </div>
+      </section>
+
+      <!-- 知识库页面 -->
+      <section class="page" id="page-knowledge">
+        <div class="page-header">
+          <h2>📚 知识库</h2>
+          <span class="page-subtitle">浏览器本地存储 · 数据私有</span>
+          <button class="btn-primary" onclick="toggleKnowledgeForm()" style="margin-left:auto">+ 新建文档</button>
+        </div>
+        <div class="stats-row" id="knowledgeStats"></div>
+        <div class="event-form" id="knowledgeForm" style="display:none">
+          <input type="text" id="knowledgeTitle" placeholder="文档标题（如：配电线路故障排查指南）">
+          <textarea id="knowledgeContent" placeholder="文档内容（Markdown 格式）" rows="6"></textarea>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn-primary" onclick="saveKnowledge()">保存到知识库</button>
+            <button class="btn-secondary" onclick="toggleKnowledgeForm()">取消</button>
+          </div>
+        </div>
+        <div class="search-box">
+          <input type="text" id="knowledgeSearch" placeholder="搜索知识库..." oninput="searchKnowledge()">
+        </div>
+        <div class="knowledge-list" id="knowledgeList"></div>
+      </section>
+
+      <!-- 事件记录页面 -->
+      <section class="page" id="page-events">
+        <div class="page-header">
+          <h2>📅 事件记录</h2>
+          <span class="page-subtitle">待办 · 笔记 · 日程</span>
+          <button class="btn-primary" onclick="addEvent()">+ 新建事件</button>
+        </div>
+        <div class="event-form" id="eventForm" style="display:none;">
+          <input type="text" id="eventTitle" placeholder="事件标题...（日程可含日期如"明天下午开会"）">
+          <textarea id="eventContent" placeholder="事件内容..." rows="3"></textarea>
+          <select id="eventType">
+            <option value="todo">待办</option>
+            <option value="note">笔记</option>
+            <option value="schedule">日程</option>
+          </select>
+          <button class="btn-primary" onclick="saveEvent()">保存</button>
+          <button class="btn-secondary" onclick="toggleEventForm()">取消</button>
+        </div>
+        <!-- 日历视图 -->
+        <div class="calendar-view" id="calendarView">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="calPrevMonth()">◀</button>
+            <span class="cal-month-title" id="calMonthTitle"></span>
+            <button class="cal-nav-btn" onclick="calNextMonth()">▶</button>
+            <button class="cal-today-btn" onclick="calGoToday()">今天</button>
+          </div>
+          <div class="cal-weekdays">
+            <div class="cal-weekday weekend">日</div><div class="cal-weekday">一</div><div class="cal-weekday">二</div><div class="cal-weekday">三</div><div class="cal-weekday">四</div><div class="cal-weekday">五</div><div class="cal-weekday weekend">六</div>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-legend" id="calLegend">
+            <div class="cal-legend-title">📋 本月日程</div>
+            <div class="cal-legend-list" id="calLegendList"></div>
+          </div>
+        </div>
+        <div class="event-list" id="eventList"></div>
+      </section>
+
+      <!-- 数据看板页面 -->
+      <section class="page" id="page-dashboard-data">
+        <div class="page-header">
+          <h2>📊 数据看板</h2>
+          <span class="page-subtitle">体重 · 习惯 · 记账 · 阅读 · 工作</span>
+        </div>
+        <div class="data-tabs" id="dataTabs">
+          <button class="data-tab active" onclick="switchDataTab('weight')">⚖️ 体重追踪</button>
+          <button class="data-tab" onclick="switchDataTab('habits')">✅ 习惯打卡</button>
+          <button class="data-tab" onclick="switchDataTab('ledger')">💰 记账本</button>
+          <button class="data-tab" onclick="switchDataTab('reading')">📚 阅读记录</button>
+          <button class="data-tab" onclick="switchDataTab('worklog')">📋 工作记录</button>
+        </div>
+        <div class="data-tab-content" id="dataTabContent"></div>
+      </section>
+
+      <!-- 设置页面 -->
+      <section class="page" id="page-settings">
+        <div class="page-header">
+          <h2>⚙️ 设置</h2>
+          <span class="page-subtitle">主题 · 备份 · 关于</span>
+        </div>
+
+        <!-- 主题切换 -->
+        <div class="settings-section">
+          <h3>🎨 主题风格</h3>
+          <div class="theme-grid" id="themeGrid"></div>
+        </div>
+
+        <!-- 备份恢复 -->
+        <div class="settings-section">
+          <h3>💾 数据备份</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            导出所有数据为 JSON 文件。恢复时会将数据导入当前浏览器存储。
+          </p>
+          <div class="backup-actions">
+            <button class="btn-primary" onclick="exportData()">📥 导出数据备份</button>
+            <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📤 导入数据恢复</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:10px">
+            ⚠️ 导入会覆盖现有数据，建议先导出备份。注意：数据仅存储在当前浏览器中。
+          </p>
+        </div>
+
+        <!-- 关于 -->
+        <div class="settings-section">
+          <h3>ℹ️ 关于昭朝工作台</h3>
+          <div class="about-info">
+            <div><strong>版本：</strong>v2.2 纯静态版</div>
+            <div><strong>形态：</strong>西高地白梗小狗 🐶</div>
+            <div><strong>技术栈：</strong>HTML/CSS/JS + Chart.js + localStorage</div>
+            <div><strong>数据存储：</strong>浏览器 localStorage（无需服务器）</div>
+            <div><strong>追踪数据：</strong>体重 · 习惯 · 记账 · 阅读 · 工作</div>
+            <div><strong>信息聚合：</strong>天气 · 热搜 · 快捷入口</div>
+            <div><strong>主题：</strong>8 套风格包（灵感源自不一书个人工作台生成器）</div>
+            <div><strong>部署：</strong>可托管在任何静态服务（CloudStudio / GitHub Pages / Vercel）</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 移动端底部导航 -->
+  <nav class="mobile-nav" id="mobileNav"></nav>
+</div>
+
+<!-- 知识库文档查看弹窗 -->
+<div class="modal-overlay" id="knowledgeModal" style="display:none;" onclick="if(event.target===this)closeKnowledgeModal()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title" id="kmTitle">文档查看</span>
+      <button class="modal-close" onclick="closeKnowledgeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <pre class="knowledge-viewer" id="kmContent"></pre>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="kmDeleteBtn" style="background:var(--accent-amber)">🗑️ 删除此文档</button>
+      <button class="btn-secondary" onclick="closeKnowledgeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 成就弹窗 -->
+<div class="achievement-toast" id="achievementToast" style="display:none;">
+  <div class="achievement-content">
+    <span class="achievement-icon" id="achievementIcon">⭐</span>
+    <div>
+      <div class="achievement-name" id="achievementName"></div>
+      <div class="achievement-desc" id="achievementDesc"></div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=7"></script>
+<script>
+(function(){var c=setInterval(function(){if(typeof petIcon==='function'){clearInterval(c);
+document.querySelectorAll('h2').forEach(function(h){var t=h.innerHTML;t=t.replace('📚',petIcon('knowledge',20));t=t.replace('📅',petIcon('events',20));t=t.replace('📊',petIcon('dashboard-data',20));t=t.replace('⚙️',petIcon('settings',20));h.innerHTML=t;});
+document.querySelectorAll('.data-tab').forEach(function(b){var h=b.innerHTML;h=h.replace('⚖️',petIcon('dashboard',14));h=h.replace('✅',petIcon('heart',14));h=h.replace('💰',petIcon('coin',14));h=h.replace('📚',petIcon('book',14));h=h.replace('📋',petIcon('clock',14));b.innerHTML=h;});
+var lg=document.querySelector('.cal-legend-title');if(lg)lg.innerHTML=lg.innerHTML.replace('📋',petIcon('events',14));
+var ac=document.getElementById('achievementIcon');if(ac)ac.innerHTML=petIcon('trophy',28);
+}},50);})();
+</script>
+</body>
+</html>
