@@ -404,6 +404,31 @@ body {
 .dot-pink { background:var(--accent-pink); }
 .dot-blue { background:var(--accent); }
 
+/* 待办项左边框（随主题变色） */
+.card-item.todo-item {
+  border-left: 3px solid var(--accent-amber);
+  padding-left: 10px;
+  margin-bottom: 2px;
+  border-radius: 0 6px 6px 0;
+  transition: border-color 0.3s;
+}
+.card-item.todo-schedule {
+  border-left: 3px solid var(--primary);
+  padding-left: 10px;
+  margin-bottom: 2px;
+  border-radius: 0 6px 6px 0;
+  transition: border-color 0.3s;
+}
+.todo-type-badge {
+  font-size: 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 4px;
+  font-weight: 600;
+}
+
 /* ===== 设置页 ===== */
 .settings-section {
   background:var(--bg-card); border:1px solid var(--border);

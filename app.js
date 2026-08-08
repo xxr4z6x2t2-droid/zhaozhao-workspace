@@ -409,12 +409,22 @@ async function loadDashboard() {
       </div>
     `;
 
-    // 加载待办
-    const pending = eventsAll.filter(e => !e.completed && e.type === 'todo').slice(0, 5);
+    // 加载待办（todo未完成 + 当天日程）
+    const today = new Date().toISOString().slice(0, 10);
+    const pendingTodos = eventsAll.filter(e => !e.completed && e.type === 'todo');
+    const todaySchedules = eventsAll.filter(e => {
+      if (e.type !== 'schedule') return false;
+      if (e.completed) return false;
+      return eventHitsDate(e, today);
+    });
+    const pending = [...pendingTodos, ...todaySchedules].slice(0, 5);
     const todos = document.getElementById('quickTodos');
-    if (todos) todos.innerHTML = pending.length ? pending.map(e =>
-      `<div class="card-item"><span class="dot dot-amber"></span>${e.title}</div>`
-    ).join('') : '<div class="card-item" style="color:var(--text-muted)">暂无待办 🎉</div>';
+    if (todos) todos.innerHTML = pending.length ? pending.map(e => {
+      const isSchedule = e.type === 'schedule';
+      const cls = isSchedule ? 'todo-schedule' : 'todo-item';
+      const badge = isSchedule ? '<span class="todo-type-badge">日程</span> ' : '';
+      return `<div class="card-item ${cls}"><span class="dot ${isSchedule ? 'dot-blue' : 'dot-amber'}"></span>${badge}${e.title}</div>`;
+    }).join('') : '<div class="card-item" style="color:var(--text-muted);border-left:none;padding-left:0">暂无待办 🎉</div>';
 
   } catch(e) {
     grid.innerHTML = '<div class="card" style="color:var(--text-muted);text-align:center;padding:40px;grid-column:1/-1">加载失败</div>';
