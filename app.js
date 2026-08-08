@@ -410,7 +410,6 @@ async function loadDashboard() {
     `;
 
     // 加载待办（todo未完成 + 当天日程）
-    const today = new Date().toISOString().slice(0, 10);
     const pendingTodos = eventsAll.filter(e => !e.completed && e.type === 'todo');
     const todaySchedules = eventsAll.filter(e => {
       if (e.type !== 'schedule') return false;
