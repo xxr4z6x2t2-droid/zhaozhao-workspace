@@ -301,6 +301,12 @@ async function loadDashboard() {
         <div class="weather-detail">💧 湿度 ${weather.humidity} · 🌬️ 风力 ${weather.wind}</div>
       </div>
 
+      <!-- 待办列表 -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">⏳ 待办事项</span></div>
+        <div class="card-row" id="quickTodos">加载中...</div>
+      </div>
+
       <!-- 今日热点 -->
       <div class="card hotspot-card">
         <div class="card-header"><span class="card-title">🔥 今日热点</span><span style="font-size:11px;color:var(--text-muted)">${hotspots.date||''}</span></div>
@@ -400,12 +406,6 @@ async function loadDashboard() {
           <button class="quick-link" onclick="window.open('https://www.bilibili.com')">📺 B站</button>
           <button class="quick-link" onclick="window.open('https://www.xiaohongshu.com')">📕 小红书</button>
         </div>
-      </div>
-
-      <!-- 待办列表 -->
-      <div class="card" style="grid-column: 1 / -1">
-        <div class="card-header"><span class="card-title">⏳ 待办事项</span></div>
-        <div class="card-row" id="quickTodos">加载中...</div>
       </div>
     `;
 
