@@ -101,7 +101,7 @@ async function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `昭朝工作台备份_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `昭朝工作台备份_${fmtDate(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('导出成功', '数据备份', '已下载 JSON 文件');
@@ -274,7 +274,7 @@ async function loadDashboard() {
     const weightText = latestWeight ? `${latestWeight.weight}kg` : '--';
     const totalWorkHours = worklog.logs.reduce((s,l) => s + l.hours, 0);
 
-    const today = new Date().toISOString().slice(0,10);
+    const today = fmtDate(new Date());
     const todayLogs = habits.logs[today] || {};
     const habitDone = Object.values(todayLogs).filter(v => v).length;
     const habitTotal = habits.habits.length;
@@ -409,12 +409,17 @@ async function loadDashboard() {
       </div>
     `;
 
-    // 加载待办（todo未完成 + 当天日程）
-    const pendingTodos = eventsAll.filter(e => !e.completed && e.type === 'todo');
+    // 加载待办（todo未完成 + 当天日程）— 循环事件用 isRecurCompleted 检查当天完成状态
+    const pendingTodos = eventsAll.filter(e => {
+      if (e.type !== 'todo') return false;
+      if (e.recurrence) return !isRecurCompleted(e, today);
+      return !e.completed;
+    });
     const todaySchedules = eventsAll.filter(e => {
       if (e.type !== 'schedule') return false;
-      if (e.completed) return false;
-      return eventHitsDate(e, today);
+      if (!eventHitsDate(e, today)) return false;
+      if (e.recurrence) return !isRecurCompleted(e, today);
+      return !e.completed;
     });
     const pending = [...pendingTodos, ...todaySchedules].slice(0, 5);
     const todos = document.getElementById('quickTodos');
@@ -475,7 +480,7 @@ function qrSaveWeight() {
   const val = document.getElementById('qrWeight').value;
   if (!val) return;
   const data = lsGet('zhaozhao-weight', DEFAULT_WEIGHT);
-  const today = new Date().toISOString().slice(0,10);
+  const today = fmtDate(new Date());
   const idx = data.records.findIndex(r => r.date === today);
   if (idx >= 0) data.records[idx].weight = parseFloat(val);
   else data.records.push({ date: today, weight: parseFloat(val) });
@@ -488,7 +493,7 @@ function qrSaveWeight() {
 
 function qrToggleHabit(habitId) {
   const data = lsGet('zhaozhao-habits', DEFAULT_HABITS);
-  const today = new Date().toISOString().slice(0,10);
+  const today = fmtDate(new Date());
   if (!data.logs[today]) data.logs[today] = {};
   data.logs[today][habitId] = !data.logs[today][habitId];
   lsSet('zhaozhao-habits', data);
@@ -502,7 +507,7 @@ function qrSaveLedger() {
   data.records.unshift({
     id: genId(), amount: parseFloat(amt), type: 'expense',
     category: document.getElementById('qrLedgerCat').value,
-    date: new Date().toISOString().slice(0,10),
+    date: fmtDate(new Date()),
   });
   lsSet('zhaozhao-ledger', data);
   document.getElementById('qrLedgerAmt').value = '';
@@ -529,7 +534,7 @@ function qrSaveWorklog() {
   const data = lsGet('zhaozhao-worklog', DEFAULT_WORKLOG);
   data.logs.unshift({
     id: genId(), title, hours: parseFloat(hours) || 0,
-    date: new Date().toISOString().slice(0,10),
+    date: fmtDate(new Date()),
   });
   lsSet('zhaozhao-worklog', data);
   document.getElementById('qrWorkTitle').value = '';
@@ -1229,7 +1234,7 @@ async function loadWeightTab() {
       <div class="chart-container"><canvas id="weightChart"></canvas></div>
       <div class="data-form">
         <input type="number" id="weightInput" placeholder="体重 (kg)" step="0.1">
-        <input type="date" id="weightDate" value="${new Date().toISOString().slice(0,10)}">
+        <input type="date" id="weightDate" value="${fmtDate(new Date())}">
         <input type="text" id="weightGoal" placeholder="目标 (kg)" value="${data.goal}" style="width:80px">
         <button class="btn-secondary" style="padding:6px 10px;font-size:12px" onclick="saveWeightGoalOnly()">💾 只改目标</button>
         <button class="btn-primary" onclick="saveWeight()">记录</button>
@@ -1291,7 +1296,7 @@ async function deleteWeightRecord(index) {
 async function loadHabitsTab() {
   destroyChart();
   const data = lsGet('zhaozhao-habits', DEFAULT_HABITS);
-  const today = new Date().toISOString().slice(0,10);
+  const today = fmtDate(new Date());
   const todayLogs = data.logs[today] || {};
   const container = document.getElementById('dataTabContent');
 
@@ -1339,7 +1344,7 @@ async function loadHabitsTab() {
 
 async function toggleHabit(habitId) {
   const data = lsGet('zhaozhao-habits', DEFAULT_HABITS);
-  const today = new Date().toISOString().slice(0,10);
+  const today = fmtDate(new Date());
   if (!data.logs[today]) data.logs[today] = {};
   data.logs[today][habitId] = !data.logs[today][habitId];
   lsSet('zhaozhao-habits', data);
@@ -1393,7 +1398,7 @@ async function loadLedgerTab() {
         <select id="ledgerCat">
           <option>餐饮</option><option>交通</option><option>购物</option><option>娱乐</option><option>住房</option><option>医疗</option><option>学习</option><option>其他</option>
         </select>
-        <input type="date" id="ledgerDate" value="${new Date().toISOString().slice(0,10)}">
+        <input type="date" id="ledgerDate" value="${fmtDate(new Date())}">
         <button class="btn-primary" onclick="saveLedger()">记账</button>
         </div>
       </div>
@@ -1537,7 +1542,7 @@ async function loadWorklogTab() {
       <div class="data-form">
         <input type="text" id="worklogTitle" placeholder="工作标题">
         <input type="number" id="worklogHours" placeholder="工时(h)" step="0.5" style="width:80px">
-        <input type="date" id="worklogDate" value="${new Date().toISOString().slice(0,10)}">
+        <input type="date" id="worklogDate" value="${fmtDate(new Date())}">
         <button class="btn-primary" onclick="saveWorklog()">记录</button>
       </div>
       <div class="data-list" id="worklogList"></div>
