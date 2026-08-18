@@ -151,7 +151,7 @@ function renderSettings() {
 }
 
 // ===== 导航系统 =====
-const mainPages = ['dashboard', 'knowledge', 'events', 'dashboard-data'];
+const mainPages = ['dashboard', 'meals', 'knowledge', 'events', 'dashboard-data'];
 const bottomPages = ['settings'];
 const allPages = [...mainPages, ...bottomPages];
 
@@ -168,6 +168,8 @@ function petIcon(id, s) { s = s || 24;
     'dashboard-data': `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14L12 7L21 14Z"/><rect x="5" y="14" width="14" height="8" rx="1"/><path d="M9.5 22V17A1.5 1.5 0 0 1 11 15.5H13A1.5 1.5 0 0 1 14.5 17V22"/></svg>`,
     // 狗牌 — 设置
     settings: `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="14" height="14" rx="6"/><circle cx="12" cy="13" r="2"/><ellipse cx="12" cy="17.5" rx="2.5" ry="1.8"/><circle cx="9.5" cy="16" r="1"/><circle cx="14.5" cy="16" r="1"/></svg>`,
+    // 狗粮碗 — 饮食
+    meals: `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h16l-1.6 6.2A3 3 0 0 1 15.5 19.5h-7A3 3 0 0 1 5.6 17.2L4 11z"/><path d="M8 3.5c0 1.2 1 1.5 1 2.75M12 3.5c0 1.2 1 1.5 1 2.75M16 3.5c0 1.2 1 1.5 1 2.75"/></svg>`,
     // 太阳 — 天气
     sun: `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2V4M12 20V22M2 12H4M20 12H22M4.9 4.9L6.3 6.3M17.7 17.7L19.1 19.1M4.9 19.1L6.3 17.7M17.7 6.3L19.1 4.9"/></svg>`,
     // 爱心
@@ -186,7 +188,7 @@ function petIcon(id, s) { s = s || 24;
   return icons[id] || icons.dashboard;
 }
 
-const navIcons = { dashboard: 'dashboard', knowledge: 'knowledge', events: 'events', 'dashboard-data': 'dashboard-data', settings: 'settings' };
+const navIcons = { dashboard: 'dashboard', meals: 'meals', knowledge: 'knowledge', events: 'events', 'dashboard-data': 'dashboard-data', settings: 'settings' };
 let currentPage = 'dashboard';
 
 function buildNav() {
@@ -221,7 +223,7 @@ function buildNav() {
 }
 
 function getPageName(id) {
-  const map = { dashboard:'Dashboard', knowledge:'知识库', events:'事件', 'dashboard-data':'数据看板', settings:'设置' };
+  const map = { dashboard:'Dashboard', meals:'饮食', knowledge:'知识库', events:'事件', 'dashboard-data':'数据看板', settings:'设置' };
   // 检查自定义模块
   const modules = lsGet('zhaozhao-modules', []);
   const mod = modules.find(m => m.id === id);
@@ -235,6 +237,7 @@ function navigate(pageId) {
   currentPage = pageId;
   buildNav();
   if (pageId === 'dashboard') loadDashboard();
+  if (pageId === 'meals') loadMeals();
   if (pageId === 'knowledge') loadKnowledge();
   if (pageId === 'events') loadEvents();
   if (pageId === 'dashboard-data') { switchDataTab('weight'); }
@@ -393,6 +396,12 @@ async function loadDashboard() {
         <div class="card-number-label">已完成 / 总计</div>
       </div>
 
+      <!-- 今日饮食 -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">${petIcon('meals',16)} 今日饮食</span><span class="card-badge" id="mealsCardCount">…</span></div>
+        <div id="mealsCardList" style="font-size:13px"><span style="color:var(--text-muted);font-size:12px">加载中…</span></div>
+      </div>
+
       <!-- 快捷入口 -->
       <div class="card">
         <div class="card-header"><span class="card-title">🔗 快捷入口</span></div>
@@ -408,6 +417,8 @@ async function loadDashboard() {
 
     // 渲染完成后再异步拉天气（元素此时已存在）
     updateWeather(weatherCity);
+    // 异步拉今日饮食（不阻塞首屏）
+    updateMealsCard();
 
     // 加载待办（todo未完成 + 当天日程）— 循环事件用 isRecurCompleted 检查当天完成状态
     const pendingTodos = eventsAll.filter(e => {
@@ -1696,6 +1707,169 @@ async function shareWorkspace() {
     showToast('链接已复制', '分享链接', url);
   } catch(e) {
     showToast('提示', '分享链接', '请在浏览器中复制地址栏链接');
+  }
+}
+
+// ===== 饮食记录（饭搭子开放接口，只读拉取） =====
+const MEALS_API_BASE = 'https://fandazi.coze.site';
+const MEALS_KEY_STORAGE = 'zhaozhao-meals-key';
+const MEALS_CACHE = 'zhaozhao-meals-cache'; // { fetchedAt, data }，仅本机缓存，不参与云同步
+
+function mealsKey() { return (localStorage.getItem(MEALS_KEY_STORAGE) || '').trim(); }
+
+async function mealsFetch(params, timeoutMs) {
+  timeoutMs = timeoutMs || 12000;
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(MEALS_API_BASE + '/api/open/meals' + qs, {
+      headers: { 'x-api-key': mealsKey() },
+      signal: ctrl.signal
+    });
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
+      try { const j = await res.json(); if (j.error) msg = j.error; } catch(e) {}
+      throw new Error(msg);
+    }
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || '接口返回异常');
+    return json.data;
+  } finally { clearTimeout(tid); }
+}
+
+function mealsStars(rating) {
+  rating = rating || 0;
+  return '★'.repeat(rating) + '☆'.repeat(Math.max(0, 5 - rating));
+}
+
+function mealItemHtml(m) {
+  return `
+    <div class="card-item" style="align-items:flex-start">
+      <span style="font-size:18px">${esc(m.mood_emoji || '🍽️')}</span>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:11px;background:#4f46e5;color:#fff;border-radius:4px;padding:1px 5px">${esc(m.meal_type_label || m.meal_type || '')}</span>
+          <b style="font-size:13px">${esc(m.food_name || '')}</b>
+          ${m.is_exploration ? '<span style="font-size:11px;color:#d97706">🧭 探店</span>' : ''}
+        </div>
+        ${m.description ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(m.description)}</div>` : ''}
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
+          ${m.rating ? `<span style="color:#f59e0b">${mealsStars(m.rating)}</span> · ` : ''}
+          ${m.restaurant_name ? esc(m.restaurant_name) : ''}${m.restaurant_name && m.restaurant_category ? ' · ' : ''}${m.restaurant_category ? esc(m.restaurant_category) : ''}
+          ${m.photo_count ? ' · 📷' + m.photo_count : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadMeals(force) {
+  const box = document.getElementById('mealsContent');
+  if (!box) return;
+  const key = mealsKey();
+  if (!key) {
+    box.innerHTML = `
+      <div class="card" style="padding:20px">
+        <h3 style="margin:0 0 8px">🍽️ 连接饭搭子</h3>
+        <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px">
+          输入饭搭子 App「设置 → 开放接口」里的 API Key，连接后在这里展示你每天吃了什么、吃得怎么样。只读展示，Key 只保存在本机浏览器，不进仓库不上云。
+        </p>
+        <div class="event-form" style="display:flex">
+          <input type="text" id="mealsKeyInput" placeholder="fdz_ 开头的 API Key" style="flex:1" onkeydown="if(event.key==='Enter')saveMealsKey()">
+          <button class="btn-primary" onclick="saveMealsKey()">连接</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // 10 分钟内用缓存，刷新按钮绕过
+  let payload = null;
+  const cache = lsGet(MEALS_CACHE, null);
+  if (!force && cache && cache.data && (Date.now() - (cache.fetchedAt || 0)) < 10 * 60 * 1000) payload = cache.data;
+
+  box.innerHTML = '<div class="card" style="color:var(--text-muted);text-align:center;padding:40px">加载中…</div>';
+
+  if (!payload) {
+    const to = fmtDate(new Date());
+    const from = fmtDate(new Date(Date.now() - 6 * 86400000));
+    try {
+      payload = await mealsFetch({ from: from, to: to, limit: 100 });
+      lsSet(MEALS_CACHE, { fetchedAt: Date.now(), data: payload });
+    } catch (e) {
+      box.innerHTML = `<div class="card" style="padding:24px;color:var(--text-muted)">⚠️ 拉取失败：${esc(e.message)}<br><br>
+        <button class="btn-secondary" onclick="mealsClearKey()">换 Key</button>
+        <button class="btn-primary" onclick="loadMeals(true)">重试</button></div>`;
+      return;
+    }
+  }
+
+  const meals = payload.meals || [];
+  const rated = meals.filter(m => m.rating);
+  const avg = rated.length ? (rated.reduce((s, m) => s + m.rating, 0) / rated.length).toFixed(1) : '--';
+  const loveCount = meals.filter(m => m.mood === 'love' || m.mood === 'amazing').length;
+  const exploreCount = meals.filter(m => m.is_exploration).length;
+
+  // 按日期分组（接口已按日期倒序，同日最新在前）
+  const groups = {};
+  meals.forEach(m => { (groups[m.date] = groups[m.date] || []).push(m); });
+  const days = Object.keys(groups).sort().reverse();
+  const today = fmtDate(new Date());
+
+  box.innerHTML = `
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value">${meals.length}</div><div class="stat-label">近7天餐数</div></div>
+      <div class="stat-card"><div class="stat-value">${avg}</div><div class="stat-label">平均评分</div></div>
+      <div class="stat-card"><div class="stat-value">${loveCount}</div><div class="stat-label">爱了/超棒</div></div>
+      <div class="stat-card"><div class="stat-value">${exploreCount}</div><div class="stat-label">探店</div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-header">
+        <span class="card-title">${petIcon('meals', 16)} ${esc(payload.nickname || '')} 最近吃了啥</span>
+        <span style="font-size:11px;color:var(--text-muted)">${esc(payload.range || '')} · <a href="javascript:void(0)" onclick="loadMeals(true)" style="color:inherit;text-decoration:underline">刷新</a> · <a href="javascript:void(0)" onclick="mealsClearKey()" style="color:inherit;text-decoration:underline">断开</a></span>
+      </div>
+      ${days.length ? days.map(d => `
+        <div style="margin:10px 0 4px;font-size:12px;color:var(--text-muted);font-weight:600">${d === today ? '今天' : d} · ${groups[d].length} 餐</div>
+        ${groups[d].map(mealItemHtml).join('')}`).join('')
+      : '<div class="card-item" style="color:var(--text-muted)">近 7 天还没有记录，去饭搭子记一笔吧 🍜</div>'}
+    </div>`;
+}
+
+function saveMealsKey() {
+  const v = (document.getElementById('mealsKeyInput').value || '').trim();
+  if (!v) { alert('请输入 API Key'); return; }
+  localStorage.setItem(MEALS_KEY_STORAGE, v);
+  localStorage.removeItem(MEALS_CACHE);
+  loadMeals(true);
+}
+
+function mealsClearKey() {
+  if (!confirm('断开饭搭子连接？（只清除本机保存的 Key，不影响饭搭子 App 里的数据）')) return;
+  localStorage.removeItem(MEALS_KEY_STORAGE);
+  localStorage.removeItem(MEALS_CACHE);
+  loadMeals();
+}
+
+// Dashboard 今日饮食卡片（异步填充，不阻塞首屏）
+async function updateMealsCard() {
+  const list = document.getElementById('mealsCardList');
+  const badge = document.getElementById('mealsCardCount');
+  if (!list || !badge) return;
+  const key = mealsKey();
+  if (!key) {
+    badge.textContent = '未连接';
+    list.innerHTML = `<span style="color:var(--text-muted);font-size:12px">去 <a href="javascript:void(0)" onclick="navigate('meals')" style="text-decoration:underline">饮食页</a> 连接饭搭子后展示</span>`;
+    return;
+  }
+  try {
+    const data = await mealsFetch({ date: fmtDate(new Date()) }, 8000);
+    const meals = data.meals || [];
+    badge.textContent = meals.length + ' 餐';
+    list.innerHTML = meals.length
+      ? meals.map(m => `<div class="card-item"><span>${esc(m.mood_emoji || '🍽️')}</span><span style="font-size:11px;color:var(--text-muted);min-width:30px">${esc(m.meal_type_label || '')}</span><span style="flex:1;font-size:13px">${esc(m.food_name || '')}</span>${m.rating ? `<span style="color:#f59e0b;font-size:12px">${mealsStars(m.rating)}</span>` : ''}</div>`).join('')
+      : '<div style="color:var(--text-muted);font-size:12px">今天还没记录，去饭搭子记一笔 🍜</div>';
+  } catch (e) {
+    badge.textContent = '--';
+    list.innerHTML = `<span style="color:var(--text-muted);font-size:12px">拉取失败：${esc(e.message)}</span>`;
   }
 }
 
