@@ -241,10 +241,9 @@ async function loadDashboard() {
     const completed = eventsAll.filter(e => e.completed).length;
     const total = eventsAll.length;
 
-    // 天气 — 首屏先用占位，异步填充（Open-Meteo，国内可达）
+    // 天气 — 首屏先用占位，渲染后再异步填充（Open-Meteo，国内可达）
     let weatherCity = localStorage.getItem('zhaozhao-weather-city') || '长春';
     const weather = { city: weatherCity, temp: '…', condition: '获取中', humidity: '--', wind: '--' };
-    updateWeather(weatherCity); // 异步，不阻塞渲染
 
     // 今日热点 — 从本地 hotspots.json 加载
     let hotspots = { date: '', gold: null, sections: [] };
@@ -398,6 +397,9 @@ async function loadDashboard() {
         </div>
       </div>
     `;
+
+    // 渲染完成后再异步拉天气（元素此时已存在）
+    updateWeather(weatherCity);
 
     // 加载待办（todo未完成 + 当天日程）— 循环事件用 isRecurCompleted 检查当天完成状态
     const pendingTodos = eventsAll.filter(e => {
