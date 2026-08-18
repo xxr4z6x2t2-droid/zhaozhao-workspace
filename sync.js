@@ -44,7 +44,7 @@ const Sync = {
     if (!url || !key) return null;
     const mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     this.client = mod.createClient(url, key, {
-      auth: { persistSession: true, autoRefreshToken: true }
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
     return this.client;
   },
@@ -176,7 +176,17 @@ const Sync = {
     if (!token) { alert('请输入 6 位验证码'); return; }
     const { error } = await c.auth.verifyOtp({ email: email, token: token, type: 'email' });
     if (error) { alert('登录失败：' + error.message); return; }
+    this.markAllDirty(); // 首次登录：标记全部本地数据待推送
     this.pull(false).then(() => this.flush());
+  },
+
+  // 标记所有本地数据为待同步（首次登录 / 强制全量推送时用）
+  markAllDirty() {
+    const dirty = [];
+    for (const k of this.KEYS) {
+      if (localStorage.getItem(k) !== null) dirty.push(k);
+    }
+    localStorage.setItem('zhaozhao-sync-dirty', JSON.stringify(dirty));
   },
 
   async logout() {
@@ -232,7 +242,7 @@ const Sync = {
         <span>${dirty.length ? '⏳ ' + dirty.length + ' 项待同步' : '✅ ' + (this.lastSync ? '上次同步 ' + this.fmtTime(this.lastSync) : '已连接云端')}</span>
       </div>
       <div class="backup-actions" style="margin-top:10px">
-        <button class="btn-primary" onclick="Sync.pull(false).then(()=>Sync.flush())">🔄 立即同步</button>
+        <button class="btn-primary" onclick="Sync.markAllDirty();Sync.pull(false).then(()=>Sync.flush())">🔄 立即同步</button>
         <button class="btn-secondary" onclick="Sync.logout()">退出登录</button>
       </div>`;
   },
@@ -242,6 +252,19 @@ const Sync = {
     this.ui();
     const { url, key } = this.cfg();
     if (!url || !key) return;
+    // 魔法链接回调：URL hash 里有 session token 时，等客户端自动解析后再拉取
+    if (location.hash && (location.hash.includes('access_token') || location.hash.includes('error'))) {
+      const c = await this.ensureClient();
+      if (c) {
+        // 客户端 detectSessionInUrl 会自动解析 hash 并存 session
+        // 清掉 hash 防止重复触发，延迟一下让客户端完成解析
+        setTimeout(() => {
+          history.replaceState(null, '', location.pathname + location.search);
+          this.markAllDirty(); // 魔法链接首次登录也全量推送
+          this.pull(false).then(() => this.flush());
+        }, 800);
+      }
+    }
     // 先尝试恢复会话并拉取，失败静默（离线照常可用）
     try {
       await this.pull(true);
