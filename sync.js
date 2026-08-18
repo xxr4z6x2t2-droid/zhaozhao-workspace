@@ -163,9 +163,43 @@ const Sync = {
     if (!c) { alert('请先填写 Supabase URL 和 anon key'); return; }
     const email = document.getElementById('syncEmail').value.trim();
     if (!/^\S+@\S+\.\S+$/.test(email)) { alert('请输入有效邮箱'); return; }
-    const { error } = await c.auth.signInWithOtp({ email: email, options: { shouldCreateUser: true } });
+    // emailRedirectTo: 让魔法链接点开后跳回工作台（不是 Supabase 默认的 localhost）
+    const redirectTo = location.origin + location.pathname;
+    const { error } = await c.auth.signInWithOtp({
+      email: email,
+      options: { shouldCreateUser: true, emailRedirectTo: redirectTo }
+    });
     if (error) alert('发送失败：' + error.message);
-    else { this._pendingEmail = email; alert('验证码已发送到 ' + email + '，请查收（含垃圾邮件箱）'); }
+    else {
+      this._pendingEmail = email;
+      // 注册 onAuthStateChange：魔法链接回来时自动接住 session
+      c.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          this.markAllDirty();
+          this.pull(false).then(() => this.flush());
+        }
+      });
+      alert('登录链接已发送到 ' + email + '\n\n方式一：直接点邮件里的链接\n方式二（推荐）：长按链接→复制→回来粘贴到下方输入框');
+    }
+  },
+
+  // 粘贴魔法链接：用户从邮件复制链接 URL 粘贴进来，提取 hash 里的 token
+  async pasteLink() {
+    const raw = (document.getElementById('syncPasteLink')?.value || '').trim();
+    if (!raw) { alert('请粘贴邮件里的登录链接'); return; }
+    // 提取 hash 或 query 里的 token 参数
+    let hash = '';
+    try {
+      const u = new URL(raw);
+      hash = u.hash;
+    } catch {
+      // 不是完整 URL，可能直接是 hash
+      hash = raw.startsWith('#') ? raw : '#' + raw;
+    }
+    if (!hash.includes('access_token')) { alert('这不是有效的登录链接，请确认复制了完整的链接'); return; }
+    // 把 hash 写入当前页面 URL，然后重新加载让客户端检测
+    location.hash = hash;
+    location.reload();
   },
 
   async verifyCode() {
@@ -223,12 +257,18 @@ const Sync = {
         <div class="sync-form">
           <input type="email" id="syncEmail" placeholder="邮箱（用于登录并隔离你的数据）">
           <div style="display:flex;gap:8px">
-            <input type="text" id="syncCode" placeholder="6 位验证码" style="width:120px" inputmode="numeric">
-            <button class="btn-primary" onclick="Sync.sendCode()">发送验证码</button>
-            <button class="btn-primary" onclick="Sync.verifyCode()">登录</button>
+            <button class="btn-primary" onclick="Sync.sendCode()" style="flex:1">发送登录链接到邮箱</button>
           </div>
+          <details style="margin-top:12px">
+            <summary style="font-size:12px;color:var(--text-muted);cursor:pointer">📎 点不开 / 换了浏览器？长按邮件链接→复制→粘这里</summary>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <input type="text" id="syncPasteLink" placeholder="粘贴邮件里的登录链接" style="flex:1;font-size:12px">
+              <button class="btn-primary" onclick="Sync.pasteLink()">登录</button>
+            </div>
+          </details>
         </div>
         <p style="font-size:12px;color:var(--text-muted);margin-top:8px">
+          ⚡ Supabase 免费版默认发魔法链接（不是数字码），点链接会跳回工作台自动登录。<br>
           已配置：${url} · <a href="javascript:void(0)" onclick="localStorage.removeItem('zhaozhao-supabase-url');localStorage.removeItem('zhaozhao-supabase-key');Sync.client=null;Sync.ui()">清除配置</a>
         </p>`;
       return;
@@ -252,18 +292,32 @@ const Sync = {
     this.ui();
     const { url, key } = this.cfg();
     if (!url || !key) return;
+    const c = await this.ensureClient();
+    if (!c) return;
+    // 监听 auth 状态变化（魔法链接回调 / token 刷新时自动同步）
+    c.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        this.user = session?.user || null;
+        this.markAllDirty();
+        this.pull(false).then(() => this.flush());
+        this.ui();
+        // 清掉 URL 上的敏感 hash
+        if (location.hash && location.hash.includes('access_token')) {
+          history.replaceState(null, '', location.pathname + location.search);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        this.user = null;
+        this.ui();
+      }
+    });
     // 魔法链接回调：URL hash 里有 session token 时，等客户端自动解析后再拉取
     if (location.hash && (location.hash.includes('access_token') || location.hash.includes('error'))) {
-      const c = await this.ensureClient();
-      if (c) {
-        // 客户端 detectSessionInUrl 会自动解析 hash 并存 session
-        // 清掉 hash 防止重复触发，延迟一下让客户端完成解析
-        setTimeout(() => {
-          history.replaceState(null, '', location.pathname + location.search);
-          this.markAllDirty(); // 魔法链接首次登录也全量推送
-          this.pull(false).then(() => this.flush());
-        }, 800);
-      }
+      // 客户端 detectSessionInUrl 会自动解析 hash 并存 session → onAuthStateChange 会触发
+      // 额外保险：800ms 后再手动拉一次
+      setTimeout(() => {
+        this.markAllDirty();
+        this.pull(false).then(() => this.flush());
+      }, 800);
     }
     // 先尝试恢复会话并拉取，失败静默（离线照常可用）
     try {
