@@ -145,6 +145,15 @@
           <div class="theme-grid" id="themeGrid"></div>
         </div>
 
+        <!-- 云同步（Supabase，可选） -->
+        <div class="settings-section">
+          <h3>☁️ 云同步（Supabase）</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            可选：登录后多设备数据自动同步。本地数据始终保留，未登录/未配置时一切照旧。
+          </p>
+          <div id="syncSection"><p style="font-size:12px;color:var(--text-muted)">加载中…</p></div>
+        </div>
+
         <!-- 备份恢复 -->
         <div class="settings-section">
           <h3>💾 数据备份</h3>
@@ -154,10 +163,11 @@
           <div class="backup-actions">
             <button class="btn-primary" onclick="exportData()">📥 导出数据备份</button>
             <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📤 导入数据恢复</button>
+            <button class="btn-secondary" onclick="shareDiaryData()">📝 分享今日日记数据</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
           </div>
           <p style="font-size:12px;color:var(--text-muted);margin-top:10px">
-            ⚠️ 导入会覆盖现有数据，建议先导出备份。注意：数据仅存储在当前浏览器中。
+            ⚠️ 导入会覆盖现有数据，建议先导出备份。「日记数据」是给 Echo Diary 用的当日摘要 JSON（也可直接访问 <a href="?diary=1" target="_blank">?diary=1</a> 获取）。
           </p>
         </div>
 
@@ -165,12 +175,13 @@
         <div class="settings-section">
           <h3>ℹ️ 关于昭朝工作台</h3>
           <div class="about-info">
-            <div><strong>版本：</strong>v2.2 纯静态版</div>
+            <div><strong>版本：</strong>v2.4 云同步版</div>
             <div><strong>形态：</strong>西高地白梗小狗 🐶</div>
-            <div><strong>技术栈：</strong>HTML/CSS/JS + Chart.js + localStorage</div>
-            <div><strong>数据存储：</strong>浏览器 localStorage（无需服务器）</div>
+            <div><strong>技术栈：</strong>HTML/CSS/JS + Chart.js + localStorage + Supabase（可选）</div>
+            <div><strong>数据存储：</strong>浏览器 localStorage 优先，可选云同步（登录隔离）</div>
             <div><strong>追踪数据：</strong>体重 · 习惯 · 记账 · 阅读 · 工作</div>
             <div><strong>信息聚合：</strong>天气 · 热搜 · 快捷入口</div>
+            <div><strong>Echo Diary：</strong>?diary=1 导出当日日记数据（供快捷指令/LLM 使用）</div>
             <div><strong>主题：</strong>8 套风格包（灵感源自不一书个人工作台生成器）</div>
             <div><strong>部署：</strong>可托管在任何静态服务（CloudStudio / GitHub Pages / Vercel）</div>
           </div>
@@ -211,9 +222,34 @@
   </div>
 </div>
 
-<script src="app.js?v=7"></script>
 <script>
-(function(){var c=setInterval(function(){if(typeof petIcon==='function'){clearInterval(c);
+(function(){
+  var params = new URLSearchParams(location.search);
+  var s = document.createElement('script');
+  if (params.get('diary')) {
+    // 日记导出模式：只加载轻量 diary.js，输出当日数据 JSON
+    s.src = 'diary.js?v=1';
+  } else {
+    s.src = 'app.js?v=8';
+  }
+  document.body.appendChild(s);
+  if (!params.get('diary')) {
+    // 云同步模块（可选，未配置时不加载任何外部资源）
+    var sm = document.createElement('script');
+    sm.type = 'module';
+    sm.src = 'sync.js?v=1';
+    document.body.appendChild(sm);
+    // 日记分享按钮函数（普通模式常驻）
+    var sd = document.createElement('script');
+    sd.src = 'diary.js?v=1';
+    document.body.appendChild(sd);
+  }
+})();
+</script>
+<script>
+(function(){
+  if (new URLSearchParams(location.search).get('diary')) return; // 导出模式不需要图标替换
+  var c=setInterval(function(){if(typeof petIcon==='function'){clearInterval(c);
 document.querySelectorAll('h2').forEach(function(h){var t=h.innerHTML;t=t.replace('📚',petIcon('knowledge',20));t=t.replace('📅',petIcon('events',20));t=t.replace('📊',petIcon('dashboard-data',20));t=t.replace('⚙️',petIcon('settings',20));h.innerHTML=t;});
 document.querySelectorAll('.data-tab').forEach(function(b){var h=b.innerHTML;h=h.replace('⚖️',petIcon('dashboard',14));h=h.replace('✅',petIcon('heart',14));h=h.replace('💰',petIcon('coin',14));h=h.replace('📚',petIcon('book',14));h=h.replace('📋',petIcon('clock',14));b.innerHTML=h;});
 var lg=document.querySelector('.cal-legend-title');if(lg)lg.innerHTML=lg.innerHTML.replace('📋',petIcon('events',14));
