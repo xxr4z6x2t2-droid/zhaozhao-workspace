@@ -209,10 +209,11 @@ const Sync = {
           if (btn) { btn.disabled = false; btn.textContent = '登录'; }
           return;
         }
-        // 成功 → onAuthStateChange(SIGNED_IN) 会自动触发同步，这里只需提示
-        alert('登录成功！正在同步数据…');
-        document.getElementById('syncPasteLink').value = '';
+        // 成功 → onAuthStateChange(SIGNED_IN) 会自动触发同步；此时登录 UI 可能已被替换，元素做判空保护
+        const inp = document.getElementById('syncPasteLink');
+        if (inp) inp.value = '';
         if (btn) { btn.disabled = false; btn.textContent = '登录'; }
+        alert('登录成功！正在同步数据…');
       } catch (e) {
         alert('登录异常：' + (e.message || e));
         if (btn) { btn.disabled = false; btn.textContent = '登录'; }
