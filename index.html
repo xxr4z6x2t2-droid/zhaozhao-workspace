@@ -56,6 +56,16 @@
         </div>
       </section>
 
+      <!-- 饮食记录页面 -->
+      <section class="page" id="page-meals">
+        <div class="page-header">
+          <h2>🍽️ 饮食记录</h2>
+          <span class="page-subtitle">来自饭搭子 · 吃了什么 · 吃得怎么样</span>
+          <button class="btn-secondary" onclick="loadMeals(true)" style="margin-left:auto">🔄 刷新</button>
+        </div>
+        <div id="mealsContent"><p style="color:var(--text-muted)">加载中…</p></div>
+      </section>
+
       <!-- 知识库页面 -->
       <section class="page" id="page-knowledge">
         <div class="page-header">
@@ -175,11 +185,11 @@
         <div class="settings-section">
           <h3>ℹ️ 关于昭朝工作台</h3>
           <div class="about-info">
-            <div><strong>版本：</strong>v2.4 云同步版</div>
+            <div><strong>版本：</strong>v2.5 饮食记录版</div>
             <div><strong>形态：</strong>西高地白梗小狗 🐶</div>
             <div><strong>技术栈：</strong>HTML/CSS/JS + Chart.js + localStorage + Supabase（可选）</div>
             <div><strong>数据存储：</strong>浏览器 localStorage 优先，可选云同步（登录隔离）</div>
-            <div><strong>追踪数据：</strong>体重 · 习惯 · 记账 · 阅读 · 工作</div>
+            <div><strong>追踪数据：</strong>体重 · 习惯 · 记账 · 阅读 · 工作 · 饮食（饭搭子）</div>
             <div><strong>信息聚合：</strong>天气 · 热搜 · 快捷入口</div>
             <div><strong>Echo Diary：</strong>?diary=1 导出当日日记数据（供快捷指令/LLM 使用）</div>
             <div><strong>主题：</strong>8 套风格包（灵感源自不一书个人工作台生成器）</div>
@@ -230,7 +240,7 @@
     // 日记导出模式：只加载轻量 diary.js，输出当日数据 JSON
     s.src = 'diary.js?v=1';
   } else {
-    s.src = 'app.js?v=9';
+    s.src = 'app.js?v=10';
   }
   document.body.appendChild(s);
   if (!params.get('diary')) {
@@ -250,7 +260,7 @@
 (function(){
   if (new URLSearchParams(location.search).get('diary')) return; // 导出模式不需要图标替换
   var c=setInterval(function(){if(typeof petIcon==='function'){clearInterval(c);
-document.querySelectorAll('h2').forEach(function(h){var t=h.innerHTML;t=t.replace('📚',petIcon('knowledge',20));t=t.replace('📅',petIcon('events',20));t=t.replace('📊',petIcon('dashboard-data',20));t=t.replace('⚙️',petIcon('settings',20));h.innerHTML=t;});
+document.querySelectorAll('h2').forEach(function(h){var t=h.innerHTML;t=t.replace('📚',petIcon('knowledge',20));t=t.replace('🍽️',petIcon('meals',20));t=t.replace('📅',petIcon('events',20));t=t.replace('📊',petIcon('dashboard-data',20));t=t.replace('⚙️',petIcon('settings',20));h.innerHTML=t;});
 document.querySelectorAll('.data-tab').forEach(function(b){var h=b.innerHTML;h=h.replace('⚖️',petIcon('dashboard',14));h=h.replace('✅',petIcon('heart',14));h=h.replace('💰',petIcon('coin',14));h=h.replace('📚',petIcon('book',14));h=h.replace('📋',petIcon('clock',14));b.innerHTML=h;});
 var lg=document.querySelector('.cal-legend-title');if(lg)lg.innerHTML=lg.innerHTML.replace('📋',petIcon('events',14));
 var ac=document.getElementById('achievementIcon');if(ac)ac.innerHTML=petIcon('trophy',28);
