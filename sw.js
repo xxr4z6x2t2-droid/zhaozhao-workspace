@@ -1,5 +1,5 @@
 // 昭朝工作台 Service Worker — PWA 离线缓存
-const CACHE_NAME = 'zhaozhao-workspace-v4';
+const CACHE_NAME = 'zhaozhao-workspace-v5';
 const ASSETS = [
   '/',
   '/index.html',
