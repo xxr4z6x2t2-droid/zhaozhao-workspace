@@ -183,21 +183,51 @@ const Sync = {
     }
   },
 
-  // 粘贴魔法链接：用户从邮件复制链接 URL 粘贴进来，提取 hash 里的 token
+  // 粘贴魔法链接：支持两种格式
+  // ① 邮件原始链接：.../auth/v1/verify?token=xxx&type=magiclink&redirect_to=...
+  // ② 已验证跳转链接：...#access_token=...（hash 里带 session）
   async pasteLink() {
     const raw = (document.getElementById('syncPasteLink')?.value || '').trim();
     if (!raw) { alert('请粘贴邮件里的登录链接'); return; }
-    // 提取 hash 或 query 里的 token 参数
-    let hash = '';
-    try {
-      const u = new URL(raw);
-      hash = u.hash;
-    } catch {
-      // 不是完整 URL，可能直接是 hash
-      hash = raw.startsWith('#') ? raw : '#' + raw;
+    const c = await this.ensureClient();
+    if (!c) return;
+
+    let u = null;
+    try { u = new URL(raw); } catch {}
+
+    // 情况①：邮件里的原始 verify 链接（token 在 ?token= 参数里）→ 直接调 verifyOtp 换 session
+    if (u && u.pathname.includes('/auth/v1/verify')) {
+      const tokenHash = u.searchParams.get('token');
+      const type = u.searchParams.get('type') || 'magiclink';
+      if (!tokenHash) { alert('链接里缺少 token，请复制完整的邮件链接'); return; }
+      const btn = document.querySelector('[onclick="Sync.pasteLink()"]');
+      if (btn) { btn.disabled = true; btn.textContent = '登录中…'; }
+      try {
+        const { error } = await c.auth.verifyOtp({ token_hash: tokenHash, type: type });
+        if (error) {
+          alert('登录失败：' + error.message + '\n\n如果是「token 已过期或已使用」，请回到上面重新发送一封新邮件，用新链接登录。');
+          if (btn) { btn.disabled = false; btn.textContent = '登录'; }
+          return;
+        }
+        // 成功 → onAuthStateChange(SIGNED_IN) 会自动触发同步，这里只需提示
+        alert('登录成功！正在同步数据…');
+        document.getElementById('syncPasteLink').value = '';
+        if (btn) { btn.disabled = false; btn.textContent = '登录'; }
+      } catch (e) {
+        alert('登录异常：' + (e.message || e));
+        if (btn) { btn.disabled = false; btn.textContent = '登录'; }
+      }
+      return;
     }
-    if (!hash.includes('access_token')) { alert('这不是有效的登录链接，请确认复制了完整的链接'); return; }
-    // 把 hash 写入当前页面 URL，然后重新加载让客户端检测
+
+    // 情况②：hash 里带 access_token 的跳转链接 → 写入当前 URL 重载，让客户端自动解析
+    let hash = '';
+    if (u) { hash = u.hash; }
+    else { hash = raw.startsWith('#') ? raw : '#' + raw; }
+    if (!hash.includes('access_token')) {
+      alert('无法识别这个链接。\n\n请确认复制的是邮件里完整的那一行链接（很长，以 https://xxx.supabase.co/auth/v1/verify?token=... 开头）。');
+      return;
+    }
     location.hash = hash;
     location.reload();
   },
