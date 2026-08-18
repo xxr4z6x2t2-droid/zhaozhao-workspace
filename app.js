@@ -1711,7 +1711,8 @@ async function shareWorkspace() {
 }
 
 // ===== 饮食记录（饭搭子开放接口，只读拉取） =====
-const MEALS_API_BASE = 'https://fandazi.coze.site';
+// fandazi 接口无 CORS 头，浏览器直连被拦，走自家 Supabase Edge Function 代理
+const MEALS_PROXY = 'https://whmjurdqzzbitpwsuliq.supabase.co/functions/v1/meals';
 const MEALS_KEY_STORAGE = 'zhaozhao-meals-key';
 const MEALS_CACHE = 'zhaozhao-meals-cache'; // { fetchedAt, data }，仅本机缓存，不参与云同步
 
@@ -1722,13 +1723,12 @@ async function mealsFetch(params, timeoutMs) {
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    const res = await fetch(MEALS_API_BASE + '/api/open/meals' + qs, {
-      headers: { 'x-api-key': mealsKey() },
-      signal: ctrl.signal
-    });
+    // key 走 query 参数（简单请求无预检）；代理端补上 x-api-key 头转发给饭搭子
+    const qs = '?' + new URLSearchParams(Object.assign({}, params || {}, { key: mealsKey() })).toString();
+    const res = await fetch(MEALS_PROXY + qs, { signal: ctrl.signal });
     if (!res.ok) {
       let msg = 'HTTP ' + res.status;
+      if (res.status === 404) msg = '代理函数未部署：请在 Supabase → Edge Functions 创建名为 meals 的函数（详见说明）';
       try { const j = await res.json(); if (j.error) msg = j.error; } catch(e) {}
       throw new Error(msg);
     }
