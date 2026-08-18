@@ -1,7 +1,13 @@
 {
   "date": "2026-08-18",
-  "updated": "2026-08-18T09:09:16.107Z",
-  "gold": null,
+  "updated": "2026-08-18T09:10:58.180Z",
+  "gold": {
+    "price_cny": "953.73",
+    "price_usd": "4392.70",
+    "unit": "元/克",
+    "usd_unit": "美元/盎司",
+    "source": "gold-api.com"
+  },
   "sections": [
     {
       "title": "📰 今日要闻",
@@ -33,47 +39,92 @@
       ]
     },
     {
+      "title": "🔥 微博热搜",
+      "items": [
+        {
+          "title": "朱镕基同志生平",
+          "url": "https://s.weibo.com/weibo?q=%E6%9C%B1%E9%95%95%E5%9F%BA%E5%90%8C%E5%BF%97%E7%94%9F%E5%B9%B3",
+          "hot": "106.1万"
+        },
+        {
+          "title": "朱镕基同志遗体在京火化",
+          "url": "https://s.weibo.com/weibo?q=%E6%9C%B1%E9%95%95%E5%9F%BA%E5%90%8C%E5%BF%97%E9%81%97%E4%BD%93%E5%9C%A8%E4%BA%AC%E7%81%AB%E5%8C%96",
+          "hot": "101.0万"
+        },
+        {
+          "title": "中国医师节致敬不平凡的你",
+          "url": "https://s.weibo.com/weibo?q=%E4%B8%AD%E5%9B%BD%E5%8C%BB%E5%B8%88%E8%8A%82%E8%87%B4%E6%95%AC%E4%B8%8D%E5%B9%B3%E5%87%A1%E7%9A%84%E4%BD%A0",
+          "hot": "60.2万"
+        },
+        {
+          "title": "调查组通报杭州酒局事件",
+          "url": "https://s.weibo.com/weibo?q=%E8%B0%83%E6%9F%A5%E7%BB%84%E9%80%9A%E6%8A%A5%E6%9D%AD%E5%B7%9E%E9%85%92%E5%B1%80%E4%BA%8B%E4%BB%B6",
+          "hot": "58.9万"
+        },
+        {
+          "title": "台风",
+          "url": "https://s.weibo.com/weibo?q=%E5%8F%B0%E9%A3%8E",
+          "hot": "50.1万"
+        },
+        {
+          "title": "特朗普还对人民大会堂念念不忘",
+          "url": "https://s.weibo.com/weibo?q=%E7%89%B9%E6%9C%97%E6%99%AE%E8%BF%98%E5%AF%B9%E4%BA%BA%E6%B0%91%E5%A4%A7%E4%BC%9A%E5%A0%82%E5%BF%B5%E5%BF%B5%E4%B8%8D%E5%BF%98",
+          "hot": "40.7万"
+        },
+        {
+          "title": "红车误入婚车车队成主角",
+          "url": "https://s.weibo.com/weibo?q=%E7%BA%A2%E8%BD%A6%E8%AF%AF%E5%85%A5%E5%A9%9A%E8%BD%A6%E8%BD%A6%E9%98%9F%E6%88%90%E4%B8%BB%E8%A7%92",
+          "hot": "39.5万"
+        },
+        {
+          "title": "厄尔尼诺事件大概率历史最强",
+          "url": "https://s.weibo.com/weibo?q=%E5%8E%84%E5%B0%94%E5%B0%BC%E8%AF%BA%E4%BA%8B%E4%BB%B6%E5%A4%A7%E6%A6%82%E7%8E%87%E5%8E%86%E5%8F%B2%E6%9C%80%E5%BC%BA",
+          "hot": "39.3万"
+        }
+      ]
+    },
+    {
       "title": "📌 今日头条",
       "items": [
         {
           "title": "朱镕基同志生平",
           "url": "https://www.toutiao.com/trending/7675264490950102571",
-          "hot": "3195.8万"
+          "hot": "3198.3万"
         },
         {
           "title": "天安门下半旗悼念朱镕基同志",
           "url": "https://www.toutiao.com/trending/7674420762769702954",
-          "hot": "2891.7万"
+          "hot": "2893.9万"
         },
         {
           "title": "激发下沉市场活力 活跃县域消费",
           "url": "https://www.toutiao.com/trending/7674608437979926057",
-          "hot": "2616.5万"
+          "hot": "2618.5万"
         },
         {
           "title": "今冬或现史上最强厄尔尼诺事件",
           "url": "https://www.toutiao.com/trending/7674218723440869430",
-          "hot": "2367.5万"
+          "hot": "2369.3万"
         },
         {
           "title": "夫妻二人同名同姓同年出生",
           "url": "https://www.toutiao.com/trending/7675226480213671962",
-          "hot": "2142.2万"
+          "hot": "2143.9万"
         },
         {
           "title": "杭州酒局事件赵某峰郁某栋被刑拘",
           "url": "https://www.toutiao.com/trending/7674909815030120454",
-          "hot": "1938.3万"
+          "hot": "1939.8万"
         },
         {
           "title": "特朗普支持率创下其第二任期内新低",
           "url": "https://www.toutiao.com/trending/7674808450081115711",
-          "hot": "1753.9万"
+          "hot": "1755.2万"
         },
         {
-          "title": "沪指尾盘强势翻红是诱多还是突破信号",
-          "url": "https://www.toutiao.com/trending/7675275647324786203",
-          "hot": "1587.0万"
+          "title": "女子用外卖袋改造空调出风耗电量减半",
+          "url": "https://www.toutiao.com/trending/7675233067165843492",
+          "hot": "1588.2万"
         }
       ]
     }
