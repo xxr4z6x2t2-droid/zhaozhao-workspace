@@ -1,9 +1,9 @@
 {
   "date": "2026-08-18",
-  "updated": "2026-08-18T09:10:58.180Z",
+  "updated": "2026-08-18T23:36:38.792Z",
   "gold": {
-    "price_cny": "953.73",
-    "price_usd": "4392.70",
+    "price_cny": "940.73",
+    "price_usd": "4332.80",
     "unit": "元/克",
     "usd_unit": "美元/盎司",
     "source": "gold-api.com"
@@ -44,42 +44,42 @@
         {
           "title": "朱镕基同志生平",
           "url": "https://s.weibo.com/weibo?q=%E6%9C%B1%E9%95%95%E5%9F%BA%E5%90%8C%E5%BF%97%E7%94%9F%E5%B9%B3",
-          "hot": "106.1万"
+          "hot": "80.7万"
         },
         {
-          "title": "朱镕基同志遗体在京火化",
-          "url": "https://s.weibo.com/weibo?q=%E6%9C%B1%E9%95%95%E5%9F%BA%E5%90%8C%E5%BF%97%E9%81%97%E4%BD%93%E5%9C%A8%E4%BA%AC%E7%81%AB%E5%8C%96",
-          "hot": "101.0万"
+          "title": "七夕",
+          "url": "https://s.weibo.com/weibo?q=%E4%B8%83%E5%A4%95",
+          "hot": "59.8万"
         },
         {
-          "title": "中国医师节致敬不平凡的你",
-          "url": "https://s.weibo.com/weibo?q=%E4%B8%AD%E5%9B%BD%E5%8C%BB%E5%B8%88%E8%8A%82%E8%87%B4%E6%95%AC%E4%B8%8D%E5%B9%B3%E5%87%A1%E7%9A%84%E4%BD%A0",
-          "hot": "60.2万"
+          "title": "9部门发文活跃县域消费",
+          "url": "https://s.weibo.com/weibo?q=9%E9%83%A8%E9%97%A8%E5%8F%91%E6%96%87%E6%B4%BB%E8%B7%83%E5%8E%BF%E5%9F%9F%E6%B6%88%E8%B4%B9",
+          "hot": "44.6万"
         },
         {
-          "title": "调查组通报杭州酒局事件",
-          "url": "https://s.weibo.com/weibo?q=%E8%B0%83%E6%9F%A5%E7%BB%84%E9%80%9A%E6%8A%A5%E6%9D%AD%E5%B7%9E%E9%85%92%E5%B1%80%E4%BA%8B%E4%BB%B6",
-          "hot": "58.9万"
+          "title": "睡前代谢皮质醇流程",
+          "url": "https://s.weibo.com/weibo?q=%E7%9D%A1%E5%89%8D%E4%BB%A3%E8%B0%A2%E7%9A%AE%E8%B4%A8%E9%86%87%E6%B5%81%E7%A8%8B",
+          "hot": "37.6万"
         },
         {
-          "title": "台风",
-          "url": "https://s.weibo.com/weibo?q=%E5%8F%B0%E9%A3%8E",
-          "hot": "50.1万"
+          "title": "胖东来招聘不包含性侵犯罪人员",
+          "url": "https://s.weibo.com/weibo?q=%E8%83%96%E4%B8%9C%E6%9D%A5%E6%8B%9B%E8%81%98%E4%B8%8D%E5%8C%85%E5%90%AB%E6%80%A7%E4%BE%B5%E7%8A%AF%E7%BD%AA%E4%BA%BA%E5%91%98",
+          "hot": "26.1万"
         },
         {
-          "title": "特朗普还对人民大会堂念念不忘",
-          "url": "https://s.weibo.com/weibo?q=%E7%89%B9%E6%9C%97%E6%99%AE%E8%BF%98%E5%AF%B9%E4%BA%BA%E6%B0%91%E5%A4%A7%E4%BC%9A%E5%A0%82%E5%BF%B5%E5%BF%B5%E4%B8%8D%E5%BF%98",
-          "hot": "40.7万"
+          "title": "做事千万不要有状态洁癖",
+          "url": "https://s.weibo.com/weibo?q=%E5%81%9A%E4%BA%8B%E5%8D%83%E4%B8%87%E4%B8%8D%E8%A6%81%E6%9C%89%E7%8A%B6%E6%80%81%E6%B4%81%E7%99%96",
+          "hot": "25.5万"
         },
         {
-          "title": "红车误入婚车车队成主角",
-          "url": "https://s.weibo.com/weibo?q=%E7%BA%A2%E8%BD%A6%E8%AF%AF%E5%85%A5%E5%A9%9A%E8%BD%A6%E8%BD%A6%E9%98%9F%E6%88%90%E4%B8%BB%E8%A7%92",
-          "hot": "39.5万"
+          "title": "上海2026社保基数公布",
+          "url": "https://s.weibo.com/weibo?q=%E4%B8%8A%E6%B5%B72026%E7%A4%BE%E4%BF%9D%E5%9F%BA%E6%95%B0%E5%85%AC%E5%B8%83",
+          "hot": "17.8万"
         },
         {
-          "title": "厄尔尼诺事件大概率历史最强",
-          "url": "https://s.weibo.com/weibo?q=%E5%8E%84%E5%B0%94%E5%B0%BC%E8%AF%BA%E4%BA%8B%E4%BB%B6%E5%A4%A7%E6%A6%82%E7%8E%87%E5%8E%86%E5%8F%B2%E6%9C%80%E5%BC%BA",
-          "hot": "39.3万"
+          "title": "公积金",
+          "url": "https://s.weibo.com/weibo?q=%E5%85%AC%E7%A7%AF%E9%87%91",
+          "hot": "15.3万"
         }
       ]
     },
@@ -89,42 +89,42 @@
         {
           "title": "朱镕基同志生平",
           "url": "https://www.toutiao.com/trending/7675264490950102571",
-          "hot": "3198.3万"
+          "hot": "5721.5万"
         },
         {
-          "title": "天安门下半旗悼念朱镕基同志",
-          "url": "https://www.toutiao.com/trending/7674420762769702954",
-          "hot": "2893.9万"
+          "title": "公积金新政来了",
+          "url": "https://www.toutiao.com/trending/7675219140914826771",
+          "hot": "5177.0万"
         },
         {
-          "title": "激发下沉市场活力 活跃县域消费",
-          "url": "https://www.toutiao.com/trending/7674608437979926057",
-          "hot": "2618.5万"
-        },
-        {
-          "title": "今冬或现史上最强厄尔尼诺事件",
-          "url": "https://www.toutiao.com/trending/7674218723440869430",
-          "hot": "2369.3万"
-        },
-        {
-          "title": "夫妻二人同名同姓同年出生",
-          "url": "https://www.toutiao.com/trending/7675226480213671962",
-          "hot": "2143.9万"
+          "title": "60万亿元，打开消费增长新空间",
+          "url": "https://www.toutiao.com/article/7675239749976392211",
+          "hot": "4684.3万"
         },
         {
           "title": "杭州酒局事件赵某峰郁某栋被刑拘",
           "url": "https://www.toutiao.com/trending/7674909815030120454",
-          "hot": "1939.8万"
+          "hot": "4238.6万"
         },
         {
-          "title": "特朗普支持率创下其第二任期内新低",
-          "url": "https://www.toutiao.com/trending/7674808450081115711",
-          "hot": "1755.2万"
+          "title": "日本地震灾区有人假扮自卫队洗劫民宅",
+          "url": "https://www.toutiao.com/trending/7675341224756576319",
+          "hot": "3835.2万"
         },
         {
-          "title": "女子用外卖袋改造空调出风耗电量减半",
-          "url": "https://www.toutiao.com/trending/7675233067165843492",
-          "hot": "1588.2万"
+          "title": "女子凭基因认出十几年前同学的儿子",
+          "url": "https://www.toutiao.com/trending/7675325062584696851",
+          "hot": "3470.3万"
+        },
+        {
+          "title": "巴萨签下曼城中场罗德里",
+          "url": "https://www.toutiao.com/trending/7675510613929365055",
+          "hot": "3140.0万"
+        },
+        {
+          "title": "“泔水喂猪”被写入禁令",
+          "url": "https://www.toutiao.com/trending/7675360953654840882",
+          "hot": "2841.2万"
         }
       ]
     }
