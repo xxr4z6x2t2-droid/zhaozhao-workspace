@@ -65,32 +65,41 @@ const Sync = {
     this._timer = setTimeout(() => this.flush(), 3000); // 3 秒防抖
   },
 
-  // ===== 推送：本地 dirty 键 → 云端 =====
+  // ===== 推送：本地 dirty 键 → 云端（逐项推进：成功的清掉，失败的保留并显示原因） =====
   async flush() {
     if (this.flushing || !this.user || !this.client) return;
     this.flushing = true;
     try {
-      let dirty = JSON.parse(localStorage.getItem('zhaozhao-sync-dirty') || '[]');
+      const dirty = JSON.parse(localStorage.getItem('zhaozhao-sync-dirty') || '[]');
+      if (!dirty.length) return;
+      const failed = [];
+      let lastErr = '';
+      const meta = JSON.parse(localStorage.getItem('zhaozhao-sync-meta') || '{}');
       for (const key of dirty) {
         const raw = localStorage.getItem(key);
-        if (raw === null) continue; // 本地无此键（未初始化），跳过
+        if (raw === null) continue; // 本地无此键（未初始化），视为已处理
+        let value;
+        try { value = JSON.parse(raw); }
+        catch (e) { failed.push(key); lastErr = key + ' 本地数据异常'; continue; }
         const { error } = await this.client.from('workspace_data').upsert({
           user_id: this.user.id,
           key: key,
-          value: JSON.parse(raw),
+          value: value,
           updated_at: new Date().toISOString()
         });
-        if (error) { this.status('同步失败'); return; }
-        const meta = JSON.parse(localStorage.getItem('zhaozhao-sync-meta') || '{}');
+        if (error) { failed.push(key); lastErr = error.message; continue; }
         meta[key] = new Date().toISOString();
-        localStorage.setItem('zhaozhao-sync-meta', JSON.stringify(meta));
       }
-      if (dirty.length) {
-        localStorage.setItem('zhaozhao-sync-dirty', '[]');
+      localStorage.setItem('zhaozhao-sync-meta', JSON.stringify(meta));
+      localStorage.setItem('zhaozhao-sync-dirty', JSON.stringify(failed));
+      this._lastErr = failed.length ? lastErr : '';
+      if (!failed.length) {
         this.lastSync = new Date();
         this.status('云端已同步 ' + this.fmtTime(this.lastSync));
-        this.ui();
+      } else {
+        this.status('同步失败：' + lastErr);
       }
+      this.ui();
     } catch (e) {
       this.status('同步失败（网络？）');
     } finally {
@@ -310,7 +319,7 @@ const Sync = {
     box.innerHTML = `
       <div class="sync-status">
         <span>👤 ${this.user.email}</span>
-        <span>${dirty.length ? '⏳ ' + dirty.length + ' 项待同步' : '✅ ' + (this.lastSync ? '上次同步 ' + this.fmtTime(this.lastSync) : '已连接云端')}</span>
+        <span>${dirty.length ? '⏳ ' + dirty.length + ' 项待同步' + (this._lastErr ? '（' + this._lastErr + '）' : '') : '✅ ' + (this.lastSync ? '上次同步 ' + this.fmtTime(this.lastSync) : '已连接云端')}</span>
       </div>
       <div class="backup-actions" style="margin-top:10px">
         <button class="btn-primary" onclick="Sync.markAllDirty();Sync.pull(false).then(()=>Sync.flush())">🔄 立即同步</button>
