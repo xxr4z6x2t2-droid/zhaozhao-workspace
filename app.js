@@ -241,20 +241,10 @@ async function loadDashboard() {
     const completed = eventsAll.filter(e => e.completed).length;
     const total = eventsAll.length;
 
-    // 天气
+    // 天气 — 首屏先用占位，异步填充（Open-Meteo，国内可达）
     let weatherCity = localStorage.getItem('zhaozhao-weather-city') || '长春';
-    let weather = { city: weatherCity, temp: '--', condition: '加载中', humidity: '--', wind: '--' };
-    try {
-      const wr = await fetch(`https://wttr.in/${encodeURIComponent(weatherCity)}?format=j1`).then(r => r.json());
-      const cc = wr.current_condition[0];
-      weather = {
-        city: weatherCity,
-        temp: cc.temp_C + '°C',
-        condition: cc.lang_zh ? cc.lang_zh[0].value : cc.weatherDesc[0].value,
-        humidity: cc.humidity + '%',
-        wind: cc.winddir16Point + ' ' + cc.windKmph + 'km/h'
-      };
-    } catch(e) { /* 天气API不可用时用默认值 */ }
+    const weather = { city: weatherCity, temp: '…', condition: '获取中', humidity: '--', wind: '--' };
+    updateWeather(weatherCity); // 异步，不阻塞渲染
 
     // 今日热点 — 从本地 hotspots.json 加载
     let hotspots = { date: '', gold: null, sections: [] };
@@ -295,10 +285,10 @@ async function loadDashboard() {
           <span class="card-edit" onclick="editWeatherCity()" title="修改城市" style="cursor:pointer;font-size:12px;opacity:0.6">✏️</span>
         </div>
         <div class="weather-main">
-          <span class="weather-temp">${weather.temp}</span>
-          <span class="weather-cond">${weather.condition}</span>
+          <span class="weather-temp" id="weatherTemp">${weather.temp}</span>
+          <span class="weather-cond" id="weatherCond">${weather.condition}</span>
         </div>
-        <div class="weather-detail">💧 湿度 ${weather.humidity} · 🌬️ 风力 ${weather.wind}</div>
+        <div class="weather-detail" id="weatherDetail">💧 湿度 ${weather.humidity} · 🌬️ 风力 ${weather.wind}</div>
       </div>
 
       <!-- 待办列表 -->
@@ -436,6 +426,43 @@ async function loadDashboard() {
 }
 
 // ===== 天气城市编辑 =====
+// WMO 天气代码 → 中文描述（Open-Meteo）
+const WMO_ZH = {0:'晴',1:'基本晴',2:'多云',3:'阴',45:'雾',48:'雾凇',51:'小毛毛雨',53:'毛毛雨',55:'大毛毛雨',56:'冻毛毛雨',57:'强冻毛毛雨',61:'小雨',63:'中雨',65:'大雨',66:'冻雨',67:'强冻雨',71:'小雪',73:'中雪',75:'大雪',77:'雪粒',80:'小阵雨',81:'阵雨',82:'强阵雨',85:'小阵雪',86:'阵雪',95:'雷暴',96:'雷暴伴冰雹',99:'强雷暴伴冰雹'};
+const WIND_ZH = {N:'北',NNE:'北东北',NE:'东北',ENE:'东东北',E:'东',ESE:'东东南',SE:'东南',SSE:'南东南',S:'南',SSW:'南西南',SW:'西南',WSW:'西西南',W:'西',WNW:'西西北',NW:'西北',NNW:'北西北'};
+
+async function updateWeather(city) {
+  const tempEl = document.getElementById('weatherTemp');
+  if (!tempEl) return;
+  const setW = (temp, cond, detail) => {
+    const c = document.getElementById('weatherCond'), d = document.getElementById('weatherDetail');
+    if (tempEl) tempEl.textContent = temp;
+    if (c) c.textContent = cond;
+    if (d) d.textContent = detail;
+  };
+  try {
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000));
+    // 1) 城市名 → 经纬度
+    const geo = await Promise.race([
+      fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=10&language=zh`).then(r => r.json()),
+      timeout
+    ]);
+    if (!geo.results || !geo.results.length) { setW('--', '未找到城市', '💧 湿度 -- · 🌬️ 风力 --'); return; }
+    // 同名地名取人口最多的（避免"长春"命中黑龙江小镇）
+    const loc = geo.results.reduce((a, b) => ((b.population || 0) > (a.population || 0) ? b : a));
+    // 2) 天气（实时 + 今日湿度）
+    const wx = await Promise.race([
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`).then(r => r.json()),
+      timeout
+    ]);
+    const cur = wx.current;
+    const cond = WMO_ZH[cur.weather_code] || '未知';
+    const windDir = WIND_ZH[Math.round(cur.wind_direction_10m / 22.5) % 16] || '';
+    setW(Math.round(cur.temperature_2m) + '°C', cond, `💧 湿度 ${cur.relative_humidity_2m}% · 🌬️ ${windDir}风 ${Math.round(cur.wind_speed_10m)}km/h`);
+  } catch(e) {
+    setW('--', '获取失败', '💧 湿度 -- · 🌬️ 风力 --');
+  }
+}
+
 function editWeatherCity() {
   const label = document.getElementById('weatherCityLabel');
   if (!label) return;
