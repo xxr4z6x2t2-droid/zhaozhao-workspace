@@ -10,6 +10,10 @@ function lsGet(key, fallback) {
   } catch { return fallback; }
 }
 function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+// HTML 转义：用户输入内容拼 innerHTML 前调用，防自注入 XSS
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 // ===== 默认数据 =====
 const DEFAULT_WEIGHT = { records: [], goal: 75 };
@@ -30,10 +34,10 @@ const DEFAULT_KNOWLEDGE = { wiki: [], raw: [] };
 let _idCounter = Date.now();
 function genId() { return ++_idCounter; }
 
-// ===== PWA Service Worker (暂时禁用，避免缓存旧代码) =====
-// if ('serviceWorker' in navigator) {
-//   navigator.serviceWorker.register('/sw.js').catch(() => {});
-// }
+// ===== PWA Service Worker（网络优先策略，离线兜底，见 sw.js） =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 
 // ===== 时间显示 =====
 function updateTime() {
@@ -86,9 +90,11 @@ function renderThemeGrid() {
 async function exportData() {
   try {
     const backup = {
-      version: '2.2',
+      version: '2.4',
       exportedAt: new Date().toISOString(),
       theme: currentTheme,
+      modules: lsGet('zhaozhao-modules', []),
+      weatherCity: localStorage.getItem('zhaozhao-weather-city') || '',
       events: lsGet('zhaozhao-events', []),
       knowledge: lsGet('zhaozhao-knowledge', DEFAULT_KNOWLEDGE),
       weight: lsGet('zhaozhao-weight', DEFAULT_WEIGHT),
@@ -126,6 +132,8 @@ async function importData(event) {
     if (data.ledger) lsSet('zhaozhao-ledger', data.ledger);
     if (data.reading) lsSet('zhaozhao-reading', data.reading);
     if (data.worklog) lsSet('zhaozhao-worklog', data.worklog);
+    if (data.modules) lsSet('zhaozhao-modules', data.modules);
+    if (data.weatherCity) localStorage.setItem('zhaozhao-weather-city', data.weatherCity);
     if (data.theme) applyTheme(data.theme);
 
     showToast('恢复成功', '数据导入', '已恢复所有数据');
@@ -280,7 +288,7 @@ async function loadDashboard() {
       <!-- 天气 -->
       <div class="card weather-card">
         <div class="card-header">
-          <span class="card-title">${petIcon('sun',16)} <span id="weatherCityLabel" data-city="${weather.city}">${weather.city}</span>天气</span>
+          <span class="card-title">${petIcon('sun',16)} <span id="weatherCityLabel" data-city="${esc(weather.city)}">${esc(weather.city)}</span>天气</span>
           <span class="card-edit" onclick="editWeatherCity()" title="修改城市" style="cursor:pointer;font-size:12px;opacity:0.6">✏️</span>
         </div>
         <div class="weather-main">
@@ -338,7 +346,7 @@ async function loadDashboard() {
             <div class="qr-habits">
               ${habits.habits.map(h => `
                 <button class="qr-habit-btn ${todayLogs[h.id]?'done':''}" onclick="qrToggleHabit('${h.id}')">
-                  <span class="qr-habit-ico">${h.icon}</span><span>${h.name}</span>
+                  <span class="qr-habit-ico">${h.icon}</span><span>${esc(h.name)}</span>
                 </button>
               `).join('')}
             </div>
@@ -358,7 +366,7 @@ async function loadDashboard() {
             <div class="qr-form">
               ${readingBooks.length ? `
                 <select id="qrBookId" class="qr-input" style="max-width:120px">
-                  ${readingBooks.map(b => `<option value="${b.id}">${b.title}${b.author?' - '+b.author:''} (${b.currentPage}/${b.totalPages||'?'})</option>`).join('')}
+                  ${readingBooks.map(b => `<option value="${b.id}">${esc(b.title)}${b.author?' - '+esc(b.author):''} (${b.currentPage}/${b.totalPages||'?'})</option>`).join('')}
                 </select>
                 <input type="number" id="qrPage" placeholder="当前页" class="qr-input" style="max-width:70px" onkeydown="if(event.key==='Enter')qrUpdateReading()">
                 <button class="qr-btn" onclick="qrUpdateReading()">更新</button>
@@ -419,7 +427,7 @@ async function loadDashboard() {
       const isSchedule = e.type === 'schedule';
       const cls = isSchedule ? 'todo-schedule' : 'todo-item';
       const badge = isSchedule ? '<span class="todo-type-badge">日程</span> ' : '';
-      return `<div class="card-item ${cls}"><span class="dot ${isSchedule ? 'dot-blue' : 'dot-amber'}"></span>${badge}${e.title}</div>`;
+      return `<div class="card-item ${cls}"><span class="dot ${isSchedule ? 'dot-blue' : 'dot-amber'}"></span>${badge}${esc(e.title)}</div>`;
     }).join('') : '<div class="card-item" style="color:var(--text-muted);border-left:none;padding-left:0">暂无待办 🎉</div>';
 
   } catch(e) {
@@ -430,7 +438,37 @@ async function loadDashboard() {
 // ===== 天气城市编辑 =====
 // WMO 天气代码 → 中文描述（Open-Meteo）
 const WMO_ZH = {0:'晴',1:'基本晴',2:'多云',3:'阴',45:'雾',48:'雾凇',51:'小毛毛雨',53:'毛毛雨',55:'大毛毛雨',56:'冻毛毛雨',57:'强冻毛毛雨',61:'小雨',63:'中雨',65:'大雨',66:'冻雨',67:'强冻雨',71:'小雪',73:'中雪',75:'大雪',77:'雪粒',80:'小阵雨',81:'阵雨',82:'强阵雨',85:'小阵雪',86:'阵雪',95:'雷暴',96:'雷暴伴冰雹',99:'强雷暴伴冰雹'};
-const WIND_ZH = {N:'北',NNE:'北东北',NE:'东北',ENE:'东东北',E:'东',ESE:'东东南',SE:'东南',SSE:'南东南',S:'南',SSW:'南西南',SW:'西南',WSW:'西西南',W:'西',WNW:'西西北',NW:'西北',NNW:'北西北'};
+
+// 内置中国主要城市坐标（geocoding-api.open-meteo.com 国内连接不稳定，本地表优先，零延迟）
+const CITY_COORDS = {
+  '北京':[39.90,116.41],'上海':[31.23,121.47],'天津':[39.13,117.20],'重庆':[29.56,106.55],
+  '广州':[23.13,113.26],'深圳':[22.54,114.06],'珠海':[22.27,113.58],'佛山':[23.02,113.12],'东莞':[23.02,113.75],'中山':[22.52,113.39],'惠州':[23.11,114.42],'汕头':[23.35,116.68],'湛江':[21.27,110.36],
+  '杭州':[30.27,120.16],'宁波':[29.87,121.54],'温州':[28.00,120.67],'嘉兴':[30.75,120.76],'绍兴':[30.03,120.58],'金华':[29.08,119.65],'台州':[28.66,121.42],
+  '南京':[32.06,118.80],'苏州':[31.30,120.58],'无锡':[31.49,120.31],'常州':[31.78,119.97],'南通':[31.98,120.89],'徐州':[34.20,117.28],'扬州':[32.39,119.41],'盐城':[33.35,120.16],'泰州':[32.45,119.92],
+  '成都':[30.57,104.07],'绵阳':[31.47,104.68],'德阳':[31.13,104.40],'宜宾':[28.75,104.64],'泸州':[28.87,105.44],'乐山':[29.55,103.77],'南充':[30.84,106.08],
+  '武汉':[30.59,114.31],'宜昌':[30.69,111.29],'襄阳':[32.01,112.12],'荆州':[30.33,112.24],
+  '长沙':[28.23,112.94],'株洲':[27.83,113.13],'湘潭':[27.83,112.94],'衡阳':[26.89,112.57],'岳阳':[29.36,113.13],
+  '西安':[34.34,108.94],'宝鸡':[34.36,107.24],'咸阳':[34.33,108.71],'渭南':[34.50,109.51],'汉中':[33.07,107.02],
+  '郑州':[34.75,113.63],'洛阳':[34.62,112.45],'开封':[34.80,114.31],'新乡':[35.30,113.93],'南阳':[32.99,112.53],
+  '济南':[36.65,117.12],'青岛':[36.07,120.38],'烟台':[37.46,121.45],'威海':[37.51,122.12],'潍坊':[36.70,119.16],'临沂':[35.10,118.36],'淄博':[36.81,118.05],'泰安':[36.20,117.09],
+  '沈阳':[41.80,123.43],'大连':[38.91,121.61],'鞍山':[41.11,122.99],'抚顺':[41.88,123.96],'锦州':[41.10,121.13],
+  '长春':[43.88,125.32],'吉林':[43.84,126.55],'四平':[43.17,124.35],'通化':[41.73,125.94],'延吉':[42.91,129.51],'松原':[45.14,124.83],'白山':[41.94,126.42],'辽源':[42.89,125.14],
+  '哈尔滨':[45.80,126.53],'齐齐哈尔':[47.35,123.92],'大庆':[46.59,125.10],'牡丹江':[44.55,129.63],'佳木斯':[46.80,130.32],
+  '石家庄':[38.04,114.51],'唐山':[39.63,118.18],'保定':[38.87,115.46],'秦皇岛':[39.94,118.81],'邯郸':[36.63,114.54],'廊坊':[39.52,116.68],
+  '太原':[37.87,112.55],'大同':[40.08,113.30],'临汾':[36.09,111.52],'运城':[35.03,111.00],
+  '合肥':[31.82,117.23],'芜湖':[31.35,118.43],'蚌埠':[32.92,117.39],'马鞍山':[31.67,118.51],
+  '福州':[26.07,119.30],'厦门':[24.48,118.09],'泉州':[24.87,118.68],'漳州':[24.51,117.65],'莆田':[25.45,119.01],
+  '南昌':[28.68,115.86],'赣州':[25.83,114.93],'九江':[29.74,116.00],'上饶':[28.45,117.94],
+  '昆明':[24.88,102.83],'大理':[25.60,100.27],'丽江':[26.86,100.23],'曲靖':[25.49,103.80],'西双版纳':[22.00,100.80],
+  '贵阳':[26.65,106.63],'遵义':[27.73,106.93],'六盘水':[26.59,104.83],
+  '南宁':[22.82,108.32],'柳州':[24.33,109.42],'桂林':[25.28,110.29],'北海':[21.48,109.12],
+  '海口':[20.04,110.32],'三亚':[18.25,109.51],
+  '兰州':[36.06,103.83],'天水':[34.58,105.72],'张掖':[38.93,100.45],
+  '西宁':[36.62,101.78],'银川':[38.49,106.23],'呼和浩特':[40.84,111.75],'包头':[40.66,109.84],
+  '拉萨':[29.65,91.14],'乌鲁木齐':[43.83,87.62],'克拉玛依':[45.58,84.89],'喀什':[39.47,75.99],
+  '香港':[22.32,114.17],'澳门':[22.20,113.55],'台北':[25.03,121.57],
+  '香港岛':[22.28,114.16],'九龙':[22.32,114.17],
+};
 
 async function updateWeather(city) {
   const tempEl = document.getElementById('weatherTemp');
@@ -441,24 +479,44 @@ async function updateWeather(city) {
     if (c) c.textContent = cond;
     if (d) d.textContent = detail;
   };
+  const fetchTimeout = (ms) => {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), ms);
+    return { signal: ctl.signal, done: () => clearTimeout(t) };
+  };
   try {
-    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000));
-    // 1) 城市名 → 经纬度
-    const geo = await Promise.race([
-      fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=10&language=zh`).then(r => r.json()),
-      timeout
-    ]);
-    if (!geo.results || !geo.results.length) { setW('--', '未找到城市', '💧 湿度 -- · 🌬️ 风力 --'); return; }
-    // 同名地名取人口最多的（避免"长春"命中黑龙江小镇）
-    const loc = geo.results.reduce((a, b) => ((b.population || 0) > (a.population || 0) ? b : a));
-    // 2) 天气（实时 + 今日湿度）
-    const wx = await Promise.race([
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`).then(r => r.json()),
-      timeout
-    ]);
+    // 1) 城市定位：内置表优先（零延迟零网络），查不到再走 geocoding 兜底
+    let lat = null, lon = null;
+    const local = CITY_COORDS[city.replace(/市$/, '')];
+    if (local) { lat = local[0]; lon = local[1]; }
+    else {
+      let loc = null;
+      for (const q of [city, city.endsWith('市') ? null : city + '市']) {
+        if (!q) continue;
+        const ft = fetchTimeout(6000);
+        try {
+          const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=zh`, { signal: ft.signal }).then(r => r.json());
+          if (geo.results && geo.results.length) {
+            loc = geo.results.reduce((a, b) => ((b.population || 0) > (a.population || 0) ? b : a));
+            if (loc.population) break;
+          }
+        } catch(e) { /* geocoding 不可达，继续 */ }
+        finally { ft.done(); }
+      }
+      if (!loc) { setW('--', '未找到城市', '💧 湿度 -- · 🌬️ 风力 --'); return; }
+      lat = loc.latitude; lon = loc.longitude;
+    }
+    // 2) 天气（api.open-meteo.com 国内可达，独立超时）
+    const ft2 = fetchTimeout(8000);
+    let wx;
+    try {
+      wx = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`, { signal: ft2.signal }).then(r => r.json());
+    } finally { ft2.done(); }
     const cur = wx.current;
+    if (!cur || cur.temperature_2m === undefined) { setW('--', '数据异常', '💧 湿度 -- · 🌬️ 风力 --'); return; }
     const cond = WMO_ZH[cur.weather_code] || '未知';
-    const windDir = WIND_ZH[Math.round(cur.wind_direction_10m / 22.5) % 16] || '';
+    const DIRS = ['北','北东北','东北','东东北','东','东东南','东南','南东南','南','南西南','西南','西西南','西','西西北','西北','北西北'];
+    const windDir = DIRS[Math.round(cur.wind_direction_10m / 22.5) % 16] || '';
     setW(Math.round(cur.temperature_2m) + '°C', cond, `💧 湿度 ${cur.relative_humidity_2m}% · 🌬️ ${windDir}风 ${Math.round(cur.wind_speed_10m)}km/h`);
   } catch(e) {
     setW('--', '获取失败', '💧 湿度 -- · 🌬️ 风力 --');
@@ -1226,17 +1284,37 @@ async function deleteEvent(id) {
 let currentDataTab = 'weight';
 let chartInstance = null;
 
+// ===== Chart.js 按需加载（不阻塞首屏；进入数据看板时才加载） =====
+let _chartJsPromise = null;
+function loadChartJs() {
+  if (typeof Chart !== 'undefined') return Promise.resolve();
+  if (_chartJsPromise) return _chartJsPromise;
+  _chartJsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Chart.js 加载失败'));
+    document.head.appendChild(s);
+  });
+  return _chartJsPromise;
+}
+
 function switchDataTab(tab) {
   currentDataTab = tab;
   document.querySelectorAll('.data-tab').forEach(t => t.classList.remove('active'));
   // 找到被点击的 tab
   const tabs = document.querySelectorAll('.data-tab');
   tabs.forEach(t => { if (t.textContent.includes({weight:'体重',habits:'习惯',ledger:'记账',reading:'阅读',worklog:'工作'}[tab])) t.classList.add('active'); });
-  if (tab === 'weight') loadWeightTab();
-  else if (tab === 'habits') loadHabitsTab();
-  else if (tab === 'ledger') loadLedgerTab();
-  else if (tab === 'reading') loadReadingTab();
-  else if (tab === 'worklog') loadWorklogTab();
+  loadChartJs().then(() => {
+    if (tab === 'weight') loadWeightTab();
+    else if (tab === 'habits') loadHabitsTab();
+    else if (tab === 'ledger') loadLedgerTab();
+    else if (tab === 'reading') loadReadingTab();
+    else if (tab === 'worklog') loadWorklogTab();
+  }).catch(e => {
+    document.getElementById('dataTabContent').innerHTML =
+      '<div style="text-align:center;padding:40px;color:var(--text-muted)">图表组件加载失败（网络问题），数据本身不受影响。请检查网络后重试。</div>';
+  });
 }
 
 function destroyChart() {
