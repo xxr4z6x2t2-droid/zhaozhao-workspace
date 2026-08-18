@@ -28,7 +28,8 @@ const Sync = {
   KEYS: [
     'zhaozhao-events', 'zhaozhao-habits', 'zhaozhao-ledger', 'zhaozhao-weight',
     'zhaozhao-reading', 'zhaozhao-worklog', 'zhaozhao-knowledge',
-    'zhaozhao-theme', 'zhaozhao-modules', 'zhaozhao-weather-city'
+    'zhaozhao-theme', 'zhaozhao-modules', 'zhaozhao-weather-city',
+    'zhaozhao-diary'
   ],
 
   cfg() {
