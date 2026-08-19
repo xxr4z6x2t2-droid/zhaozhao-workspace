@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a1e">
+<title>昭朝灵签 · 今日小签</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px}
+body{
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:60px 16px 40px;
+  background:radial-gradient(ellipse at 50% -10%,#1e1e4e 0%,transparent 55%),radial-gradient(ellipse at 85% 90%,#15103e 0%,transparent 50%),#0a0a1e;
+  font-family:"Noto Serif SC","Songti SC","STSong",serif;
+  overflow-x:hidden;color:#3e2723;-webkit-tap-highlight-color:transparent;
+}
+.particles{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.particle{position:absolute;width:3px;height:3px;background:#c9a961;border-radius:50%;animation:float 9s linear infinite}
+@keyframes float{0%{transform:translateY(105vh) translateX(0);opacity:0}8%{opacity:.35}92%{opacity:.35}100%{transform:translateY(-5vh) translateX(30px);opacity:0}}
+.back-link{position:fixed;top:18px;left:18px;color:rgba(201,169,97,.55);font-size:13px;text-decoration:none;z-index:10;letter-spacing:1px}
+.back-link:active{color:#c9a961}
+.page-title{color:#c9a961;font-size:13px;letter-spacing:8px;margin-bottom:6px;text-shadow:0 0 12px rgba(201,169,97,.25);z-index:1}
+.date-header{color:rgba(201,169,97,.65);font-size:13px;letter-spacing:2px;margin-bottom:24px;z-index:1}
+
+/* ===== 摇签 ===== */
+.shake-stage{display:flex;flex-direction:column;align-items:center;gap:20px;animation:fadeUp .6s ease;z-index:1}
+.shake-stage.hidden{display:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.bamboo-holder{width:110px;height:190px;position:relative;cursor:pointer;animation:sway 3s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+.bamboo-holder.shaking{animation:shakeHard .09s linear infinite}
+@keyframes shakeHard{0%{transform:translate(0,0) rotate(-7deg)}25%{transform:translate(3px,-2px) rotate(7deg)}50%{transform:translate(-2px,1px) rotate(-7deg)}75%{transform:translate(2px,0) rotate(7deg)}100%{transform:translate(0,0) rotate(-7deg)}}
+.bamboo-tube{width:100%;height:100%}
+.shake-hint{color:#c9a961;font-size:14px;letter-spacing:3px;opacity:.6;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:.85}}
+
+/* ===== 签卡 ===== */
+.fortune-card{display:none;width:100%;max-width:370px;background:linear-gradient(175deg,#faf4ea 0%,#f3e4cf 100%);border-radius:14px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.45),0 0 0 1px rgba(201,169,97,.3);overflow:hidden;z-index:1}
+.fortune-card.shown{display:block;animation:reveal .7s cubic-bezier(.34,1.56,.64,1)}
+@keyframes reveal{0%{transform:scale(.5) rotate(-4deg);opacity:0}55%{transform:scale(1.04) rotate(1.5deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+.card-border{margin:7px;border:2px solid #8b1a1a;border-radius:9px;padding:30px 22px 20px;position:relative}
+.card-border::before{content:'';position:absolute;inset:4px;border:1px solid rgba(201,169,97,.35);border-radius:6px;pointer-events:none}
+.fortune-num{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#c0392b,#8b1a1a);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;color:#ffd700;box-shadow:0 4px 14px rgba(0,0,0,.35);border:3px solid #ffd700;z-index:2}
+.fortune-level{text-align:center;font-size:26px;font-weight:bold;color:#8b1a1a;margin:8px 0 18px;letter-spacing:5px}
+.poem-section{display:flex;flex-direction:row-reverse;justify-content:center;gap:5px;margin:0 auto 22px;min-height:115px}
+.poem-line{writing-mode:vertical-rl;text-orientation:upright;font-size:18px;letter-spacing:5px;font-family:"STKaiti","KaiTi","楷体",serif;color:#3e2723;line-height:1.6}
+.yi-ji{display:flex;gap:10px;margin-bottom:18px}
+.yi-ji-col{flex:1;background:rgba(139,26,26,.04);border-radius:8px;padding:12px 10px}
+.yi-ji-label{text-align:center;font-size:20px;font-weight:bold;margin-bottom:8px;font-family:"STKaiti","KaiTi","楷体",serif}
+.yi-label{color:#c0392b}.ji-label{color:#5d4037}
+.yi-ji-items{list-style:none;font-size:12px;color:#5d4037;line-height:1.9}
+.yi-ji-items li{padding:1px 0}
+.lucky-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px}
+.color-swatch{width:28px;height:28px;border-radius:50%;border:2px solid rgba(201,169,97,.4);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.color-name{font-size:13px;color:#5d4037}
+.stars{text-align:center;margin-bottom:14px;font-size:16px;letter-spacing:3px;color:#c9a961}
+.interpretation{background:rgba(139,26,26,.03);border-left:3px solid #c9a961;padding:11px 13px;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.9;color:#5d4037;margin-bottom:16px}
+.seal{position:absolute;bottom:14px;right:14px;width:44px;height:44px;background:#c0392b;border-radius:4px;display:flex;align-items:center;justify-content:center;transform:rotate(-7deg);opacity:.82}
+.seal-text{color:#fff;font-size:11px;font-weight:bold;text-align:center;line-height:1.25;font-family:"STKaiti","KaiTi",serif}
+.actions{display:flex;gap:8px;justify-content:center;padding:0 22px 20px}
+.action-btn{flex:1;padding:9px 14px;border:none;border-radius:8px;font-size:13px;cursor:pointer;transition:transform .15s;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,#8b1a1a,#c0392b);color:#fff}
+.btn-secondary{background:transparent;border:1px solid #8b1a1a;color:#8b1a1a}
+.action-btn:active{transform:scale(.95)}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(120px);background:rgba(0,0,0,.88);color:#c9a961;padding:10px 22px;border-radius:22px;font-size:13px;transition:transform .3s;z-index:100}
+.toast.show{transform:translateX(-50%) translateY(0)}
+@media(max-width:380px){.poem-line{font-size:16px;letter-spacing:4px}.fortune-level{font-size:24px}}
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+<a class="back-link" href="index.html">‹ 工作台</a>
+
+<div class="page-title">昭 朝 灵 签</div>
+
+<!-- 摇签阶段 -->
+<div class="shake-stage" id="shakeStage">
+  <div class="date-header" id="dateHeader"></div>
+  <div class="bamboo-holder" id="bambooHolder" onclick="shake()">
+    <svg class="bamboo-tube" viewBox="0 0 120 200" fill="none">
+      <g><rect x="42" y="14" width="7" height="36" rx="3" fill="#d4a544" stroke="#8b6914" stroke-width="1"/><rect x="42" y="14" width="7" height="9" rx="3" fill="#c0392b"/></g>
+      <g><rect x="53" y="10" width="7" height="40" rx="3" fill="#d4a544" stroke="#8b6914" stroke-width="1"/><rect x="53" y="10" width="7" height="9" rx="3" fill="#c0392b"/></g>
+      <g><rect x="64" y="13" width="7" height="37" rx="3" fill="#d4a544" stroke="#8b6914" stroke-width="1"/><rect x="64" y="13" width="7" height="9" rx="3" fill="#c0392b"/></g>
+      <g><rect x="75" y="16" width="7" height="34" rx="3" fill="#d4a544" stroke="#8b6914" stroke-width="1"/><rect x="75" y="16" width="7" height="9" rx="3" fill="#c0392b"/></g>
+      <rect x="34" y="40" width="54" height="145" rx="8" fill="#7a5c1e"/>
+      <rect x="34" y="40" width="54" height="145" rx="8" fill="url(#shine)" opacity=".13"/>
+      <ellipse cx="61" cy="42" rx="27" ry="6" fill="#2d1c00"/>
+      <rect x="32" y="75" width="58" height="5" rx="2" fill="#5d4e1a"/>
+      <rect x="32" y="145" width="58" height="5" rx="2" fill="#5d4e1a"/>
+      <text x="61" y="112" text-anchor="middle" font-size="26" fill="#d4a544" font-family="STKaiti,serif" font-weight="bold">靈</text>
+      <text x="61" y="135" text-anchor="middle" font-size="13" fill="#d4a544" font-family="STKaiti,serif" opacity=".65">簽</text>
+      <defs><linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#fff" stop-opacity="0"/><stop offset="45%" stop-color="#fff" stop-opacity="1"/><stop offset="55%" stop-color="#fff" stop-opacity="1"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+    </svg>
+  </div>
+  <div class="shake-hint" id="shakeHint">轻摇签筒 · 抽取今日运程</div>
+</div>
+
+<!-- 签卡 -->
+<div class="fortune-card" id="fortuneCard">
+  <div class="card-border">
+    <div class="fortune-num" id="fNum">1</div>
+    <div class="fortune-level" id="fLevel">大吉</div>
+    <div class="poem-section" id="fPoem"></div>
+    <div class="yi-ji">
+      <div class="yi-ji-col"><div class="yi-ji-label yi-label">宜</div><ul class="yi-ji-items" id="fYi"></ul></div>
+      <div class="yi-ji-col"><div class="yi-ji-label ji-label">忌</div><ul class="yi-ji-items" id="fJi"></ul></div>
+    </div>
+    <div class="lucky-row">
+      <div class="color-swatch" id="fColor"></div>
+      <span class="color-name" id="fColorName"></span>
+    </div>
+    <div class="stars" id="fStars"></div>
+    <div class="interpretation" id="fInterp"></div>
+    <div class="seal"><div class="seal-text">昭朝<br>灵签</div></div>
+  </div>
+  <div class="actions">
+    <button class="action-btn btn-secondary" onclick="reshake()">再抽一签</button>
+    <button class="action-btn btn-primary" onclick="shareFortune()">分享</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 数据池 =====
+var POEMS = {
+  '大吉':[
+    ['春风得意时','花开满枝头','一鹤冲天去','万里见青州'],
+    ['金榜题名日','紫气东来时','万事皆如意','福星照前程'],
+    ['鲤鱼跃龙门','一飞冲九霄','今日遂平生','来日更上层']
+  ],
+  '中吉':[
+    ['采菊东篱下','悠然见南山','拨云见日出','前途渐宽平'],
+    ['山重水复处','柳暗花明时','莫愁无知己','天下谁不识'],
+    ['行到水穷处','坐看云起时','偶然值林叟','谈笑还复归']
+  ],
+  '小吉':[
+    ['细雨润无声','闲花落满庭','小楼听春雨','明朝卖杏花'],
+    ['微风拂柳斜','燕子衔春泥','且将一杯茶','闲看落日迟'],
+    ['晴空一鹤飞','诗情到碧霄','虽无大风浪','亦自得逍遥']
+  ],
+  '平':[
+    ['人生若初见','何事悲画扇','等闲变心故','却道心易变'],
+    ['花开堪折时','直须折花枝','莫待无花日','空折枯树枝'],
+    ['谁家玉笛声','散入春风里','此夜闻折柳','何人不起情']
+  ],
+  '末吉':[
+    ['莫听打叶声','何妨且徐行','竹杖胜快马','烟雨任平生'],
+    ['抽刀断水流','举杯消愁愁','不如归去休','扁舟泛中流'],
+    ['行路多岐路','长风会有时','直挂云帆去','济沧海有时']
+  ]
+};
+var YI_POOL=['早起迎晨光','静心读书','散步透气','写日记','记账理财','认真吃早餐','多饮温水','整理书桌','联系老友','听一首好歌','泡一壶茶','列今日计划','晒太阳','少刷手机','记一件好事','早睡安神','冥想十分钟','逛书店','给家人打电话','独处片刻'];
+var JI_POOL=['熬夜伤身','暴饮暴食','冲动消费','久坐不动','过度刷手机','忘记记账','跳过习惯打卡','情绪化决定','空腹喝咖啡','拖延症发作','深夜网购','与他人比较','纠结已发生','忘记喝水','赖床太久','边走边看手机','带情绪回消息','一次定太多计划'];
+var COLORS=[{n:'朱砂红',h:'#c0392b'},{n:'靛青蓝',h:'#2c3e50'},{n:'松石绿',h:'#16a085'},{n:'暖橘黄',h:'#e67e22'},{n:'月白',h:'#dfe4ea'},{n:'黛紫',h:'#6c3483'},{n:'檀木棕',h:'#8b6914'},{n:'胭脂粉',h:'#e8a0bf'},{n:'青瓷',h:'#a8c8a8'},{n:'墨黑',h:'#2c2c2c'},{n:'杏黄',h:'#f0c419'},{n:'天青',h:'#5dade2'}];
+var MOON_EMOJI=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+var MOON_NAMES=['新月','蛾眉月','上弦月','盈凸月','满月','亏凸月','下弦月','残月'];
+
+// ===== 工具 =====
+function fmtDate(d){var y=d.getFullYear();var m=(''+(d.getMonth()+1)).padStart(2,'0');var dd=(''+d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd}
+function hashStr(s){var h=5381;for(var i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))&0x7fffffff}return h}
+function moonPhase(dateStr){var d=new Date(dateStr);var base=new Date('2000-01-06T18:14:00Z');var syn=29.530588;var days=(d-base)/86400000;var ph=((days%syn)+syn)%syn;var idx=Math.floor(ph/3.6912)%8;return{emoji:MOON_EMOJI[idx],name:MOON_NAMES[idx]}}
+
+// ===== 读数据 =====
+function readData(){
+  var d={};
+  try{d.events=JSON.parse(localStorage.getItem('zhaozhao-events')||'[]')}catch(e){d.events=[]}
+  try{d.habits=JSON.parse(localStorage.getItem('zhaozhao-habits')||'[]')}catch(e){d.habits=[]}
+  try{d.weight=JSON.parse(localStorage.getItem('zhaozhao-weight')||'[]')}catch(e){d.weight=[]}
+  try{d.reading=JSON.parse(localStorage.getItem('zhaozhao-reading')||'{}')}catch(e){d.reading={}}
+  try{d.meals=JSON.parse(localStorage.getItem('zhaozhao-meals-cache')||'{}')}catch(e){d.meals={}}
+  try{d.diary=JSON.parse(localStorage.getItem('zhaozhao-diary')||'[]')}catch(e){d.diary=[]}
+  d.weatherCity=localStorage.getItem('zhaozhao-weather-city')||'长春';
+  return d;
+}
+
+// ===== 运势计算 =====
+function calcLevel(data){
+  var today=fmtDate(new Date());
+  var score=50;
+  // 习惯打卡
+  if(data.habits&&data.habits.length){
+    var done=0;
+    for(var i=0;i<data.habits.length;i++){
+      var h=data.habits[i];
+      if(!h.records)continue;
+      var recs=Array.isArray(h.records)?h.records:Object.keys(h.records);
+      if(recs.indexOf(today)>=0||recs.some(function(r){return r===today||r.indexOf(today)>=0}))done++;
+    }
+    score+=(done/data.habits.length)*25;
+  }
+  // 今日事件
+  var ev=(data.events||[]).filter(function(e){return e.date===today||e.date===today.replace(/-/g,'/')});
+  score+=Math.min(ev.length*3,12);
+  // 回声日记
+  if((data.diary||[]).some(function(x){return x.date===today}))score+=8;
+  // 体重记录存在
+  if((data.weight||[]).length)score+=3;
+  score=Math.max(15,Math.min(95,score));
+  if(score>=80)return{level:'大吉',stars:5,score:score};
+  if(score>=65)return{level:'中吉',stars:4,score:score};
+  if(score>=50)return{level:'小吉',stars:3,score:score};
+  if(score>=35)return{level:'平',stars:2,score:score};
+  return{level:'末吉',stars:1,score:score};
+}
+
+function pickItems(pool,seed,count){
+  var items=[],used={},s=seed;
+  while(items.length<count&&items.length<pool.length){
+    s=hashStr(''+s);
+    var idx=s%pool.length;
+    if(!used[idx]){used[idx]=1;items.push(pool[idx])}
+  }
+  return items;
+}
+
+// ===== 签解（融入真实数据） =====
+function genInterp(data,level){
+  var today=fmtDate(new Date());
+  var parts=[];
+  if(data.habits&&data.habits.length){
+    var done=0;
+    for(var i=0;i<data.habits.length;i++){
+      var h=data.habits[i];
+      if(!h.records)continue;
+      var recs=Array.isArray(h.records)?h.records:Object.keys(h.records);
+      if(recs.indexOf(today)>=0||recs.some(function(r){return r===today||r.indexOf(today)>=0}))done++;
+    }
+    if(done>0)parts.push('习惯打卡 '+done+'/'+data.habits.length);
+  }
+  var ev=(data.events||[]).filter(function(e){return e.date===today});
+  if(ev.length)parts.push('今日记事 '+ev.length+' 条');
+  if(data.meals&&data.meals.data&&data.meals.data.meals){
+    var tm=data.meals.data.meals.filter(function(m){return m.date===today});
+    if(tm.length){
+      var food=tm[0].food_name||tm[0].description||'美食';
+      parts.push('今日餐食 '+food);
+    }
+  }
+  if(data.weight&&data.weight.length){
+    var w=data.weight[data.weight.length-1];
+    if(w&&w.weight)parts.push('体重 '+w.weight+'kg');
+  }
+  if((data.diary||[]).some(function(x){return x.date===today}))parts.push('已写回声日记');
+  parts.push(data.weatherCity+'的天气');
+  var prefix={大吉:'天时地利人和，',中吉:'运势平稳有福，',小吉:'小有波折无妨，',平:'平淡度日亦安，',末吉:'宜守不宜进，'}[level]||'';
+  var suffix={大吉:'趁势而为，事半功倍。',中吉:'稳步前行，自有收获。',小吉:'不必在意，过眼云烟。',平:'平淡是真，安然度日。',末吉:'守成为上，静待时机。'}[level]||'';
+  return prefix+(parts.length?parts.join('，')+'。':'心静自然凉。')+suffix;
+}
+
+// ===== 生成签 =====
+var drawCount=0;
+var currentFortune=null;
+function generateFortune(){
+  var data=readData();
+  var li=calcLevel(data);
+  var today=fmtDate(new Date());
+  drawCount++;
+  var seed=hashStr(today+'_'+drawCount);
+  var poems=POEMS[li.level];
+  var poem=poems[seed%poems.length];
+  var yiN=2+(seed%2);
+  var yiItems=pickItems(YI_POOL,seed,yiN);
+  var jiItems=pickItems(JI_POOL,seed>>3,2);
+  var color=COLORS[seed%COLORS.length];
+  var num=(seed%100)+1;
+  var stars='';
+  for(var i=0;i<li.stars;i++)stars+='★';
+  for(var i=li.stars;i<5;i++)stars+='☆';
+  var interp=genInterp(data,li.level);
+  return{num:num,level:li.level,poem:poem,yi:yiItems,ji:jiItems,color:color,stars:stars,interp:interp};
+}
+
+// ===== 渲染 =====
+function renderFortune(f){
+  document.getElementById('fNum').textContent=f.num;
+  document.getElementById('fLevel').textContent=f.level;
+  var pe=document.getElementById('fPoem');
+  pe.innerHTML='';
+  for(var i=0;i<f.poem.length;i++){
+    var div=document.createElement('div');
+    div.className='poem-line';
+    div.textContent=f.poem[i];
+    pe.appendChild(div);
+  }
+  var yi=document.getElementById('fYi');yi.innerHTML='';
+  for(var i=0;i<f.yi.length;i++){var li=document.createElement('li');li.textContent=f.yi[i];yi.appendChild(li)}
+  var ji=document.getElementById('fJi');ji.innerHTML='';
+  for(var i=0;i<f.ji.length;i++){var li=document.createElement('li');li.textContent=f.ji[i];ji.appendChild(li)}
+  document.getElementById('fColor').style.background=f.color.h;
+  document.getElementById('fColorName').textContent='幸运色 · '+f.color.n;
+  document.getElementById('fStars').textContent=f.stars;
+  document.getElementById('fInterp').textContent=f.interp;
+}
+
+// ===== 交互 =====
+function shake(){
+  var holder=document.getElementById('bambooHolder');
+  var hint=document.getElementById('shakeHint');
+  holder.classList.add('shaking');
+  hint.style.opacity='0';
+  playDing(660,0.15);
+  setTimeout(function(){holder.classList.remove('shaking');playDing(880,0.2)},700);
+  setTimeout(function(){
+    document.getElementById('shakeStage').classList.add('hidden');
+    currentFortune=generateFortune();
+    renderFortune(currentFortune);
+    document.getElementById('fortuneCard').classList.add('shown');
+    playDing(1046,0.3);
+  },1050);
+}
+
+function reshake(){
+  document.getElementById('fortuneCard').classList.remove('shown');
+  var stage=document.getElementById('shakeStage');
+  stage.classList.remove('hidden');
+  document.getElementById('shakeHint').style.opacity='';
+}
+
+function shareFortune(){
+  if(!currentFortune)return;
+  var f=currentFortune;
+  var poemText=f.poem.join('\n');
+  var text='🔮 昭朝灵签 #'+f.num+' '+f.level+'\n\n'+poemText+'\n\n宜：'+f.yi.join('、')+'\n忌：'+f.ji.join('、')+'\n幸运色：'+f.color.n+'\n\n'+f.interp+'\n\n—— 昭朝工作台';
+  if(navigator.share){
+    navigator.share({title:'昭朝灵签',text:text}).then(function(){},function(){});
+  }else{
+    try{
+      navigator.clipboard.writeText(text);
+      showToast('签文已复制到剪贴板');
+    }catch(e){
+      showToast('请截图分享');
+    }
+  }
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show')},2500);
+}
+
+function playDing(freq,dur){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var osc=ctx.createOscillator();
+    var gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.type='sine';
+    osc.frequency.setValueAtTime(freq,ctx.currentTime);
+    gain.gain.setValueAtTime(.25,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+
+// ===== 粒子 =====
+function createParticles(){
+  var c=document.getElementById('particles');
+  for(var i=0;i<18;i++){
+    var p=document.createElement('div');
+    p.className='particle';
+    p.style.left=Math.random()*100+'%';
+    p.style.animationDelay=Math.random()*9+'s';
+    p.style.animationDuration=(7+Math.random()*5)+'s';
+    p.style.opacity=(.15+Math.random()*.25);
+    c.appendChild(p);
+  }
+}
+
+// ===== 初始化 =====
+(function(){
+  createParticles();
+  var today=fmtDate(new Date());
+  var mp=moonPhase(today);
+  var d=new Date();
+  document.getElementById('dateHeader').textContent=
+    d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日 · '+mp.emoji+' '+mp.name;
+})();
+</script>
+</body>
+</html>
