@@ -143,6 +143,23 @@
         <div class="data-tab-content" id="dataTabContent"></div>
       </section>
 
+      <!-- 管理员后台页面 -->
+      <section class="page" id="page-admin">
+        <div class="page-header">
+          <h2>🔧 管理后台</h2>
+          <span class="page-subtitle">用户管理 · 数据统计 · 系统概览</span>
+        </div>
+        <div class="admin-stats" id="adminStats"></div>
+        <div class="settings-section">
+          <h3>👥 用户列表</h3>
+          <div id="adminUserList"><p style="color:var(--text-muted);font-size:13px">加载中…</p></div>
+        </div>
+        <div class="settings-section">
+          <h3>📊 数据概览</h3>
+          <div id="adminDataOverview"><p style="color:var(--text-muted);font-size:13px">加载中…</p></div>
+        </div>
+      </section>
+
       <!-- 设置页面 -->
       <section class="page" id="page-settings">
         <div class="page-header">
@@ -160,10 +177,13 @@
         <div class="settings-section">
           <h3>☁️ 云同步（Supabase）</h3>
           <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
-            可选：登录后多设备数据自动同步。本地数据始终保留，未登录/未配置时一切照旧。
+            可选：登录后多设备数据自动同步。本地数据始终保留，未登录时一切照旧。
           </p>
           <div id="syncSection"><p style="font-size:12px;color:var(--text-muted)">加载中…</p></div>
         </div>
+
+        <!-- 管理员快捷入口（仅管理员可见，由 sync.js 动态渲染） -->
+        <div class="settings-section" id="adminSection" style="display:none"></div>
 
         <!-- 备份恢复 -->
         <div class="settings-section">
@@ -186,7 +206,7 @@
         <div class="settings-section">
           <h3>ℹ️ 关于昭朝工作台</h3>
           <div class="about-info">
-            <div><strong>版本：</strong>v2.6 饮食诊断与安全修复版</div>
+            <div><strong>版本：</strong>v3.0 邮箱登录+管理后台版</div>
             <div><strong>形态：</strong>西高地白梗小狗 🐶</div>
             <div><strong>技术栈：</strong>HTML/CSS/JS + Chart.js + localStorage + Supabase（可选）</div>
             <div><strong>数据存储：</strong>浏览器 localStorage 优先，可选云同步（登录隔离）</div>
@@ -241,14 +261,14 @@
     // 日记导出模式：只加载轻量 diary.js，输出当日数据 JSON
     s.src = 'diary.js?v=1';
   } else {
-    s.src = 'app.js?v=21';
+    s.src = 'app.js?v=30';
   }
   document.body.appendChild(s);
   if (!params.get('diary')) {
     // 云同步模块（可选，未配置时不加载任何外部资源）
     var sm = document.createElement('script');
     sm.type = 'module';
-    sm.src = 'sync.js?v=10';
+    sm.src = 'sync.js?v=11';
     document.body.appendChild(sm);
     // 日记分享按钮函数（普通模式常驻）
     var sd = document.createElement('script');

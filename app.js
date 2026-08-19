@@ -1,4 +1,4 @@
-// ===== 昭朝工作台 v2.6 — 饮食诊断与安全修复版 =====
+// ===== 昭朝工作台 v3.0 — 邮箱登录 + 管理后台版 =====
 // 所有数据存储在浏览器 localStorage，无需后端服务器
 // 可部署到任何静态托管服务（CloudStudio / GitHub Pages / Vercel 等）
 
@@ -155,6 +155,16 @@ async function importData(event) {
 
 function renderSettings() {
   renderThemeGrid();
+  // 管理员区域显隐控制
+  const adminBox = document.getElementById('adminSection');
+  if (adminBox) {
+    if (typeof Sync !== 'undefined' && Sync.user && Sync.isAdmin()) {
+      adminBox.style.display = '';
+    } else {
+      adminBox.style.display = 'none';
+      adminBox.innerHTML = '';
+    }
+  }
 }
 
 // ===== 导航系统 =====
@@ -195,7 +205,7 @@ function petIcon(id, s) { s = s || 24;
   return icons[id] || icons.dashboard;
 }
 
-const navIcons = { dashboard: 'dashboard', meals: 'meals', knowledge: 'knowledge', events: 'events', 'dashboard-data': 'dashboard-data', settings: 'settings' };
+const navIcons = { dashboard: 'dashboard', meals: 'meals', knowledge: 'knowledge', events: 'events', 'dashboard-data': 'dashboard-data', settings: 'settings', admin: 'settings' };
 let currentPage = 'dashboard';
 
 function buildNav() {
@@ -215,13 +225,19 @@ function buildNav() {
     </div>
   `).join('');
 
-  bottomNav.innerHTML = bottomPages.map(id => `
+  // 管理员入口：如果已登录且是管理员，在底部导航添加 admin 入口
+  let adminBottom = [...bottomPages];
+  if (typeof Sync !== 'undefined' && Sync.user && Sync.isAdmin()) {
+    adminBottom = ['admin', ...bottomPages];
+  }
+
+  bottomNav.innerHTML = adminBottom.map(id => `
     <div class="nav-item ${id===currentPage?'active':''}" onclick="navigate('${id}')">
-      <span class="nav-icon">${petIcon(navIcons[id])}</span> ${getPageName(id)}
+      <span class="nav-icon">${petIcon(navIcons[id] || 'dashboard')}</span> ${getPageName(id)}
     </div>
   `).join('');
 
-  mobileNav.innerHTML = [...allMain, ...bottomPages].map(id => `
+  mobileNav.innerHTML = [...allMain, ...adminBottom].map(id => `
     <div class="mobile-nav-item ${id===currentPage?'active':''}" onclick="navigate('${id}')">
       <span class="m-nav-icon">${petIcon(allIcons[id] || 'dashboard', 22)}</span>
       ${getPageName(id).substring(0,2)}
@@ -230,7 +246,7 @@ function buildNav() {
 }
 
 function getPageName(id) {
-  const map = { dashboard:'Dashboard', meals:'饮食', knowledge:'知识库', events:'事件', 'dashboard-data':'数据看板', settings:'设置' };
+  const map = { dashboard:'Dashboard', meals:'饮食', knowledge:'知识库', events:'事件', 'dashboard-data':'数据看板', settings:'设置', admin:'管理后台' };
   // 检查自定义模块
   const modules = lsGet('zhaozhao-modules', []);
   const mod = modules.find(m => m.id === id);
@@ -238,6 +254,13 @@ function getPageName(id) {
 }
 
 function navigate(pageId) {
+  // 管理员页面权限检查
+  if (pageId === 'admin') {
+    if (typeof Sync === 'undefined' || !Sync.user || !Sync.isAdmin()) {
+      alert('仅管理员可访问管理后台');
+      return;
+    }
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const page = document.getElementById('page-' + pageId);
   if (page) page.classList.add('active');
@@ -249,6 +272,7 @@ function navigate(pageId) {
   if (pageId === 'events') loadEvents();
   if (pageId === 'dashboard-data') { switchDataTab('weight'); }
   if (pageId === 'settings') renderSettings();
+  if (pageId === 'admin') loadAdminData();
 }
 
 // ===== Dashboard =====
@@ -2023,6 +2047,119 @@ async function updateMealsCard() {
   } catch (e) {
     badge.textContent = '--';
     list.innerHTML = `<span style="color:var(--text-muted);font-size:12px">拉取失败：${esc(e.message)}</span>`;
+  }
+}
+
+// ===== 管理后台 =====
+async function loadAdminData() {
+  if (typeof Sync === 'undefined' || !Sync.user || !Sync.isAdmin()) {
+    alert('仅管理员可访问');
+    navigate('dashboard');
+    return;
+  }
+
+  // 显示加载状态
+  const statsEl = document.getElementById('adminStats');
+  const userListEl = document.getElementById('adminUserList');
+  const dataOverviewEl = document.getElementById('adminDataOverview');
+  if (statsEl) statsEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px">加载中…</p>';
+  if (userListEl) userListEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px">加载中…</p>';
+  if (dataOverviewEl) dataOverviewEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px">加载中…</p>';
+
+  // 并行加载数据
+  const [users, stats] = await Promise.all([Sync.getUsers(), Sync.getWorkspaceStats()]);
+
+  // 统计卡片
+  if (statsEl) {
+    statsEl.innerHTML = `
+      <div class="stat-card"><div class="stat-number">${stats.totalUsers || 0}</div><div class="stat-label">总用户数</div></div>
+      <div class="stat-card"><div class="stat-number">${stats.todayActive || 0}</div><div class="stat-label">今日活跃</div></div>
+      <div class="stat-card"><div class="stat-number">${stats.totalDataRows || 0}</div><div class="stat-label">数据总量</div></div>
+      <div class="stat-card"><div class="stat-number">${users.length ? Math.round((stats.todayActive || 0) / users.length * 100) : 0}%</div><div class="stat-label">活跃率</div></div>
+    `;
+  }
+
+  // 用户列表
+  if (userListEl) {
+    if (!users.length) {
+      userListEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px">暂无用户</p>';
+    } else {
+      userListEl.innerHTML = `
+        <table class="admin-table">
+          <thead>
+            <tr><th>邮箱</th><th>角色</th><th>注册时间</th><th>最后登录</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            ${users.map(u => `
+              <tr>
+                <td style="font-size:13px">${esc(u.email || '')}</td>
+                <td><span class="admin-badge ${u.role || 'user'}">${u.role === 'admin' ? '👑 管理员' : '普通用户'}</span></td>
+                <td style="font-size:12px;color:var(--text-muted)">${u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN') : '-'}</td>
+                <td style="font-size:12px;color:var(--text-muted)">${u.last_login ? new Date(u.last_login).toLocaleDateString('zh-CN') : '-'}</td>
+                <td>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap">
+                    ${u.id !== Sync.user.id ? `
+                      <button class="btn-secondary" style="padding:3px 8px;font-size:11px" onclick="updateAdminUser('${u.id}','${u.role === 'admin' ? 'user' : 'admin'}')">${u.role === 'admin' ? '降为普通' : '设为管理'}</button>
+                      <button class="btn-danger" style="padding:3px 8px;font-size:11px" onclick="removeAdminUser('${u.id}')">删除</button>
+                    ` : '<span style="font-size:11px;color:var(--text-muted)">当前用户</span>'}
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+    }
+  }
+
+  // 数据概览
+  if (dataOverviewEl) {
+    const keyDist = stats.keyDist || {};
+    const keyLabels = {
+      'zhaozhao-events': '事件', 'zhaozhao-habits': '习惯', 'zhaozhao-ledger': '记账',
+      'zhaozhao-weight': '体重', 'zhaozhao-reading': '阅读', 'zhaozhao-worklog': '工作',
+      'zhaozhao-knowledge': '知识库', 'zhaozhao-diary': '日记'
+    };
+    const entries = Object.entries(keyDist).filter(([k]) => k.startsWith('zhaozhao-') && !k.includes('sync') && !k.includes('supabase'));
+    if (!entries.length) {
+      dataOverviewEl.innerHTML = '<p style="color:var(--text-muted);font-size:13px">暂无云端数据</p>';
+    } else {
+      dataOverviewEl.innerHTML = `
+        <div class="stats-row">
+          ${entries.map(([key, count]) => `
+            <div class="stat-card">
+              <div class="stat-number">${count}</div>
+              <div class="stat-label">${esc(keyLabels[key] || key.replace('zhaozhao-', ''))}</div>
+            </div>
+          `).join('')}
+        </div>`;
+    }
+  }
+}
+
+async function updateAdminUser(userId, newRole) {
+  if (typeof Sync === 'undefined' || !Sync.isAdmin()) {
+    alert('仅管理员可操作');
+    return;
+  }
+  const roleLabel = newRole === 'admin' ? '管理员' : '普通用户';
+  if (!confirm('确定将此用户角色更改为「' + roleLabel + '」？')) return;
+  const ok = await Sync.updateUserRole(userId, newRole);
+  if (ok) {
+    showToast('更新成功', '用户角色已更改', roleLabel);
+    loadAdminData();
+  }
+}
+
+async function removeAdminUser(userId) {
+  if (typeof Sync === 'undefined' || !Sync.isAdmin()) {
+    alert('仅管理员可操作');
+    return;
+  }
+  if (!confirm('⚠️ 确定删除此用户？该用户的所有云端数据也会被删除，此操作不可恢复。')) return;
+  const ok = await Sync.deleteUser(userId);
+  if (ok) {
+    showToast('删除成功', '用户已被移除');
+    loadAdminData();
   }
 }
 
