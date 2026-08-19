@@ -1800,17 +1800,51 @@ async function mealsFetch(params, timeoutMs) {
   if (!status.signedIn) throw new Error('云同步尚未登录：请先到“设置 → 云同步”完成邮箱登录，再连接饭搭子');
   if (!Sync.client) throw new Error('云同步客户端未就绪，请刷新页面重试');
   setMealsRpcState('warn', '请求中');
-  const result = await Promise.race([
-    Sync.client.rpc('get_meals', {
-      p_api_key: mealsKey(),
-      p_from: (params && (params.from || params.date)) || null,
-      p_to: (params && (params.to || params.date)) || null
-    }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时：Supabase 数据库函数或饭搭子接口未响应')), timeoutMs))
-  ]);
-  if (result.error) {
-    const msg = result.error.message || '';
-    if (msg.includes('Could not find the function') || msg.includes('does not exist') || msg.includes('Could not find')) {
+  const cfg = Sync.cfg();
+  let sessionData;
+  try {
+    sessionData = (await Sync.client.auth.getSession()).data;
+  } catch (e) {
+    setMealsRpcState('bad', '登录会话读取失败');
+    throw new Error('无法读取 Supabase 登录会话：' + (e.message || e) + '。请到设置退出登录后重新登录');
+  }
+  const session = sessionData && sessionData.session;
+  if (!session || !session.access_token) {
+    setMealsRpcState('bad', '登录会话失效');
+    throw new Error('Supabase 登录会话无效：请到设置退出登录后重新登录');
+  }
+  const rpcUrl = cfg.url.replace(/\/+$/, '') + '/rest/v1/rpc/get_meals';
+  const rpcBody = JSON.stringify({
+    p_api_key: mealsKey(),
+    p_from: (params && (params.from || params.date)) || null,
+    p_to: (params && (params.to || params.date)) || null
+  });
+  let response;
+  try {
+    response = await Promise.race([
+      fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+          apikey: cfg.key,
+          Authorization: 'Bearer ' + session.access_token,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: rpcBody
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时：Supabase RPC 或饭搭子接口未响应')), timeoutMs))
+    ]);
+  } catch (e) {
+    setMealsRpcState('bad', '网络连接失败');
+    const detail = e && e.message ? e.message : String(e);
+    throw new Error('浏览器无法连接 Supabase RPC 地址：' + rpcUrl + '（' + detail + '）。请检查 Project URL、网络或 Supabase 项目状态');
+  }
+  const rawText = await response.text();
+  let resultData = null;
+  try { resultData = rawText ? JSON.parse(rawText) : null; } catch (e) { resultData = rawText; }
+  if (!response.ok) {
+    const msg = typeof resultData === 'string' ? resultData : (resultData && (resultData.message || resultData.error || resultData.hint)) || ('HTTP ' + response.status);
+    if (msg.includes('Could not find the function') || msg.includes('does not exist') || msg.includes('Could not find') || response.status === 404) {
       setMealsRpcState('bad', '函数未创建');
       throw new Error('数据库函数 get_meals 未创建：请重新复制最新版 SQL（含 notify pgrst）到 Supabase SQL Editor，整段执行并确认 Success');
     }
@@ -1818,14 +1852,14 @@ async function mealsFetch(params, timeoutMs) {
       setMealsRpcState('bad', 'http扩展错误');
       throw new Error('Supabase http 扩展未启用或函数配置错误：请在 Database → Extensions 启用 http 后重新运行 SQL');
     }
-    if (msg.includes('Not authenticated') || msg.includes('JWT') || msg.includes('auth')) {
+    if (msg.includes('Not authenticated') || msg.includes('JWT') || msg.includes('auth') || response.status === 401) {
       setMealsRpcState('bad', '登录会话失效');
       throw new Error('Supabase 登录会话无效：请到设置退出登录后重新登录');
     }
     setMealsRpcState('bad', 'RPC错误');
     throw new Error('Supabase RPC 错误：' + msg);
   }
-  const json = result.data;
+  const json = resultData;
   if (!json || !json.success) {
     setMealsRpcState('bad', '上游返回异常');
     throw new Error((json && json.error) || '饭搭子接口返回异常');
