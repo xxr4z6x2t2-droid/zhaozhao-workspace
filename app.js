@@ -1756,6 +1756,7 @@ async function renderMealsDiagnostics(box, rpcState) {
 const MEALS_SQL = `-- 饭搭子 RPC：整段复制到 Supabase SQL Editor 后点击 Run
 create extension if not exists http;
 
+-- 使用 ARRAY[http_header(...)]，兼容不提供 http_headers() 的项目
 create or replace function public.get_meals(p_api_key text, p_from text default null, p_to text default null)
 returns json
 language plpgsql
@@ -1772,7 +1773,7 @@ begin
   if p_to is not null then v_url := v_url || case when position('?' in v_url) > 0 then '&' else '?' end || 'to=' || p_to; end if;
   select r.status, r.content into v_status, v_body
   from http((
-    'GET', v_url, http_headers('x-api-key', p_api_key), null, null
+    'GET', v_url, ARRAY[http_header('x-api-key', p_api_key)]::http_header[], null, null
   )::http_request) as r;
   if v_status < 200 or v_status >= 300 then raise exception '饭搭子接口 HTTP %: %', v_status, left(coalesce(v_body, ''), 300); end if;
   return v_body::json;
@@ -1852,7 +1853,7 @@ async function mealsFetch(params, timeoutMs) {
     }
     if (msg.includes('http') || msg.includes('extensions') || msg.includes('http_request')) {
       setMealsRpcState('bad', 'http扩展错误');
-      throw new Error('Supabase http 扩展未启用或函数配置错误（HTTP ' + response.status + '）：' + msg);
+      throw new Error('Supabase http 扩展或请求头配置错误（HTTP ' + response.status + '）：' + msg);
     }
     if (msg.includes('Not authenticated') || msg.includes('JWT') || msg.includes('auth') || response.status === 401) {
       setMealsRpcState('bad', '登录会话失效');
