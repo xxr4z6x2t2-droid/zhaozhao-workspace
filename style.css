@@ -1,3 +1,10 @@
+/* 饭搭子链路诊断带 */
+.meals-diagnostics{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;color:var(--text-muted);font-size:12px}
+.meals-diagnostic{display:flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card)}
+.meals-diagnostic .dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted)}
+.meals-diagnostic.ok .dot{background:var(--accent-green)}
+.meals-diagnostic.warn .dot{background:var(--accent-amber)}
+.meals-diagnostic.bad .dot{background:#b42318}
 /* ===== 昭朝工作台 — 8 套主题系统 ===== */
 /* 参考不一书个人工作台生成器风格体系 */
 
