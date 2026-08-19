@@ -1718,24 +1718,28 @@ const MEALS_CACHE = 'zhaozhao-meals-cache';
 
 function mealsKey() { return (localStorage.getItem(MEALS_KEY_STORAGE) || '').trim(); }
 
-const MEALS_SQL = `create extension if not exists pg_net;
+const MEALS_SQL = `create extension if not exists http with schema extensions;
 
 create or replace function public.get_meals(p_api_key text, p_from text default null, p_to text default null)
 returns json
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_url text := 'https://fandazi.coze.site/api/open/meals';
-  v_params text := '';
-  v_result json;
+  v_status integer;
+  v_body text;
 begin
   if auth.uid() is null then raise exception 'Not authenticated'; end if;
-  if p_from is not null then v_params := v_params || case when v_params = '' then '?' else '&' end || 'from=' || p_from; end if;
-  if p_to is not null then v_params := v_params || case when v_params = '' then '?' else '&' end || 'to=' || p_to; end if;
-  select content::json into v_result from http_get(url := v_url || v_params, headers := jsonb_build_object('x-api-key', p_api_key));
-  return v_result;
+  if p_from is not null then v_url := v_url || '?from=' || p_from; end if;
+  if p_to is not null then v_url := v_url || case when position('?' in v_url) > 0 then '&' else '?' end || 'to=' || p_to; end if;
+  select r.status, r.content into v_status, v_body
+  from extensions.http((
+    'GET', v_url, extensions.http_headers('x-api-key', p_api_key), null, null
+  )::extensions.http_request) as r;
+  if v_status < 200 or v_status >= 300 then raise exception '饭搭子接口 HTTP %: %', v_status, left(coalesce(v_body, ''), 300); end if;
+  return v_body::json;
 end;
 $$;
 
