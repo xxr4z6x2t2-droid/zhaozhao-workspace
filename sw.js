@@ -2,7 +2,7 @@
 // 策略：网络优先 + 失败回退缓存（代码更新立即生效，离线可用）
 // 注意：本站部署在 GitHub Pages 子路径 /zhaozhao-workspace/ 下，
 //       cache.addAll 的相对路径会以 sw.js 所在目录解析，必须用 ./ 相对路径。
-const CACHE_NAME = 'zhaozhao-workspace-v7';
+const CACHE_NAME = 'zhaozhao-workspace-v8';
 const ASSETS = [
   './',
   './index.html',
