@@ -1725,9 +1725,13 @@ async function mealsFetch(params, timeoutMs) {
   try {
     // key 走 query 参数（简单请求无预检）；代理端补上 x-api-key 头转发给饭搭子
     const qs = '?' + new URLSearchParams(Object.assign({}, params || {}, { key: mealsKey() })).toString();
-    const res = await fetch(MEALS_PROXY + qs, { signal: ctrl.signal });
+    // 带上 Supabase anon key 鉴权头（若已配置云同步），Verify JWT 开着也能通；OPTIONS 预检由代理函数应答
+    const supaKey = (localStorage.getItem('zhaozhao-supabase-key') || '').trim();
+    const headers = supaKey ? { 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey } : {};
+    const res = await fetch(MEALS_PROXY + qs, { headers: headers, signal: ctrl.signal });
     if (!res.ok) {
       let msg = 'HTTP ' + res.status;
+      if (res.status === 401) msg = '鉴权失败（HTTP 401）：要么没配云同步、要么需在函数 Details 关闭 Verify JWT';
       if (res.status === 404) msg = '代理函数未部署：请在 Supabase → Edge Functions 创建名为 meals 的函数（详见说明）';
       try { const j = await res.json(); if (j.error) msg = j.error; } catch(e) {}
       throw new Error(msg);
