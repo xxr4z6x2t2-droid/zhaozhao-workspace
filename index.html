@@ -63,6 +63,7 @@
           <span class="page-subtitle">来自饭搭子 · 吃了什么 · 吃得怎么样</span>
           <button class="btn-secondary" onclick="loadMeals(true)" style="margin-left:auto">🔄 刷新</button>
         </div>
+        <div id="mealsDiagnostics" class="meals-diagnostics" aria-live="polite"></div>
         <div id="mealsContent"><p style="color:var(--text-muted)">加载中…</p></div>
       </section>
 
@@ -96,7 +97,7 @@
           <button class="btn-primary" onclick="addEvent()">+ 新建事件</button>
         </div>
         <div class="event-form" id="eventForm" style="display:none;">
-          <input type="text" id="eventTitle" placeholder="事件标题...（日程可含日期如"明天下午开会"）">
+          <input type="text" id="eventTitle" placeholder="事件标题...（日程可含日期如“明天下午开会”）">
           <textarea id="eventContent" placeholder="事件内容..." rows="3"></textarea>
           <select id="eventType">
             <option value="todo">待办</option>
@@ -185,7 +186,7 @@
         <div class="settings-section">
           <h3>ℹ️ 关于昭朝工作台</h3>
           <div class="about-info">
-            <div><strong>版本：</strong>v2.5 饮食记录版</div>
+            <div><strong>版本：</strong>v2.6 饮食诊断与安全修复版</div>
             <div><strong>形态：</strong>西高地白梗小狗 🐶</div>
             <div><strong>技术栈：</strong>HTML/CSS/JS + Chart.js + localStorage + Supabase（可选）</div>
             <div><strong>数据存储：</strong>浏览器 localStorage 优先，可选云同步（登录隔离）</div>
@@ -240,14 +241,14 @@
     // 日记导出模式：只加载轻量 diary.js，输出当日数据 JSON
     s.src = 'diary.js?v=1';
   } else {
-    s.src = 'app.js?v=15';
+    s.src = 'app.js?v=16';
   }
   document.body.appendChild(s);
   if (!params.get('diary')) {
     // 云同步模块（可选，未配置时不加载任何外部资源）
     var sm = document.createElement('script');
     sm.type = 'module';
-    sm.src = 'sync.js?v=9';
+    sm.src = 'sync.js?v=10';
     document.body.appendChild(sm);
     // 日记分享按钮函数（普通模式常驻）
     var sd = document.createElement('script');
