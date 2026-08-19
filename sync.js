@@ -1,4 +1,4 @@
-// ===== 昭朝工作台 sync.js v5 — Supabase 云同步（魔法链接登录） =====
+// ===== 昭朝工作台 sync.js v10 — Supabase 云同步（魔法链接登录） =====
 // 原则：
 //   1) 本地优先：localStorage 永远是工作副本，未配置/未登录/断网时一切照旧
 //   2) 零构建：supabase-js 从 CDN ESM 动态加载，未配置凭据时不加载任何外部资源
@@ -24,6 +24,8 @@ const Sync = {
   _applyGuard: false,   // 云端数据写回本地时，不触发 dirty 标记
   _timer: null,
   lastSync: null,
+  ready: null,
+  _authUnsubscribe: null,
 
   KEYS: [
     'zhaozhao-events', 'zhaozhao-habits', 'zhaozhao-ledger', 'zhaozhao-weight',
@@ -48,6 +50,26 @@ const Sync = {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
     return this.client;
+  },
+
+  async waitReady() {
+    if (this.ready) return this.ready;
+    this.ready = this.boot();
+    try { await this.ready; } finally { this.ready = null; }
+    return this.client;
+  },
+
+  async sessionStatus() {
+    const c = await this.ensureClient();
+    if (!c) return { configured: false, signedIn: false, email: '' };
+    const { data, error } = await c.auth.getSession();
+    const session = data && data.session;
+    if (error || !session || !session.user) {
+      this.user = null;
+      return { configured: true, signedIn: false, email: '', error: error ? error.message : '未登录云同步' };
+    }
+    this.user = session.user;
+    return { configured: true, signedIn: true, email: session.user.email || '' };
   },
 
   // ===== 本地变更标记（由拦截的 localStorage.setItem 触发） =====
@@ -182,13 +204,6 @@ const Sync = {
     if (error) alert('发送失败：' + error.message);
     else {
       this._pendingEmail = email;
-      // 注册 onAuthStateChange：魔法链接回来时自动接住 session
-      c.auth.onAuthStateChange((event) => {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          this.markAllDirty();
-          this.pull(false).then(() => this.flush());
-        }
-      });
       alert('登录链接已发送到 ' + email + '\n\n方式一：直接点邮件里的链接\n方式二（推荐）：长按链接→复制→回来粘贴到下方输入框');
     }
   },
@@ -335,14 +350,13 @@ const Sync = {
     if (!url || !key) return;
     const c = await this.ensureClient();
     if (!c) return;
-    // 监听 auth 状态变化（魔法链接回调 / token 刷新时自动同步）
-    c.auth.onAuthStateChange((event, session) => {
+    if (this._authUnsubscribe) this._authUnsubscribe();
+    const authListener = c.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
         this.user = session?.user || null;
         this.markAllDirty();
         this.pull(false).then(() => this.flush());
         this.ui();
-        // 清掉 URL 上的敏感 hash
         if (location.hash && location.hash.includes('access_token')) {
           history.replaceState(null, '', location.pathname + location.search);
         }
@@ -351,6 +365,8 @@ const Sync = {
         this.ui();
       }
     });
+    this._authUnsubscribe = authListener && authListener.data && authListener.data.subscription
+      ? () => authListener.data.subscription.unsubscribe() : null;
     // 魔法链接回调：URL hash 里有 session token 时，等客户端自动解析后再拉取
     if (location.hash && (location.hash.includes('access_token') || location.hash.includes('error'))) {
       // 客户端 detectSessionInUrl 会自动解析 hash 并存 session → onAuthStateChange 会触发
@@ -390,4 +406,4 @@ window.Sync = Sync;
 })();
 
 // DOM 就绪后启动（module 脚本本身延迟执行，此时 DOM 已就绪）
-Sync.boot();
+Sync.ready = Sync.boot();
