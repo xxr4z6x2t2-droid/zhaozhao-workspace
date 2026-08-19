@@ -1753,7 +1753,8 @@ async function renderMealsDiagnostics(box, rpcState) {
   el.innerHTML = items.map(x => `<span class="meals-diagnostic ${x.state}"><i class="dot"></i>${esc(x.label)}：${esc(x.detail)}</span>`).join('');
 }
 
-const MEALS_SQL = `create extension if not exists http with schema extensions;
+const MEALS_SQL = `-- 饭搭子 RPC：整段复制到 Supabase SQL Editor 后点击 Run
+create extension if not exists http;
 
 create or replace function public.get_meals(p_api_key text, p_from text default null, p_to text default null)
 returns json
@@ -1770,15 +1771,16 @@ begin
   if p_from is not null then v_url := v_url || '?from=' || p_from; end if;
   if p_to is not null then v_url := v_url || case when position('?' in v_url) > 0 then '&' else '?' end || 'to=' || p_to; end if;
   select r.status, r.content into v_status, v_body
-  from extensions.http((
-    'GET', v_url, extensions.http_headers('x-api-key', p_api_key), null, null
-  )::extensions.http_request) as r;
+  from http((
+    'GET', v_url, http_headers('x-api-key', p_api_key), null, null
+  )::http_request) as r;
   if v_status < 200 or v_status >= 300 then raise exception '饭搭子接口 HTTP %: %', v_status, left(coalesce(v_body, ''), 300); end if;
   return v_body::json;
 end;
 $$;
 
-grant execute on function public.get_meals(text, text, text) to authenticated;`;
+grant execute on function public.get_meals(text, text, text) to authenticated;
+notify pgrst, 'reload schema';`;
 
 function setMealsRpcState(state, detail) {
   const el = document.getElementById('mealsDiagnostics');
@@ -1810,7 +1812,7 @@ async function mealsFetch(params, timeoutMs) {
     const msg = result.error.message || '';
     if (msg.includes('Could not find the function') || msg.includes('does not exist') || msg.includes('Could not find')) {
       setMealsRpcState('bad', '函数未创建');
-      throw new Error('数据库函数 get_meals 未创建：请在饮食页展开说明，把 SQL 粘贴到 Supabase SQL Editor 并点击 Run');
+      throw new Error('数据库函数 get_meals 未创建：请重新复制最新版 SQL（含 notify pgrst）到 Supabase SQL Editor，整段执行并确认 Success');
     }
     if (msg.includes('http') || msg.includes('extensions') || msg.includes('http_request')) {
       setMealsRpcState('bad', 'http扩展错误');
