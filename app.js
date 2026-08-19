@@ -1732,7 +1732,7 @@ async function waitForSyncGlobal(timeoutMs) {
   return Sync;
 }
 
-async function renderMealsDiagnostics(box) {
+async function renderMealsDiagnostics(box, rpcState) {
   const el = document.getElementById('mealsDiagnostics');
   if (!el) return;
   const key = mealsKey();
@@ -1743,11 +1743,12 @@ async function renderMealsDiagnostics(box) {
       syncState = await Sync.sessionStatus();
     }
   } catch (e) { syncState.error = e.message || String(e); }
+  const channel = rpcState || (syncState.signedIn ? { state: 'warn', detail: '未测试' } : { state: 'bad', detail: '等待云登录' });
   const items = [
     { label: '饭搭子 Key', state: key ? 'ok' : 'bad', detail: key ? '已填写' : '未填写' },
     { label: 'Supabase 配置', state: syncState.configured ? 'ok' : 'bad', detail: syncState.configured ? '已配置' : '未配置' },
     { label: '云同步登录', state: syncState.signedIn ? 'ok' : 'warn', detail: syncState.signedIn ? (syncState.email || '已登录') : '未登录' },
-    { label: '请求通道', state: syncState.signedIn ? 'warn' : 'bad', detail: syncState.signedIn ? 'RPC待验证' : '等待云登录' }
+    { label: '请求通道', state: channel.state, detail: channel.detail }
   ];
   el.innerHTML = items.map(x => `<span class="meals-diagnostic ${x.state}"><i class="dot"></i>${esc(x.label)}：${esc(x.detail)}</span>`).join('');
 }
@@ -1779,6 +1780,15 @@ $$;
 
 grant execute on function public.get_meals(text, text, text) to authenticated;`;
 
+function setMealsRpcState(state, detail) {
+  const el = document.getElementById('mealsDiagnostics');
+  if (!el) return;
+  const item = [...el.querySelectorAll('.meals-diagnostic')].find(x => x.textContent.includes('请求通道'));
+  if (!item) return;
+  item.className = 'meals-diagnostic ' + state;
+  item.innerHTML = `<i class="dot"></i>请求通道：${esc(detail)}`;
+}
+
 async function mealsFetch(params, timeoutMs) {
   timeoutMs = timeoutMs || 15000;
   await waitForSyncGlobal();
@@ -1787,6 +1797,7 @@ async function mealsFetch(params, timeoutMs) {
   if (!status.configured) throw new Error('未配置 Supabase 云同步：请先到“设置 → 云同步”填写项目 URL 和 anon key');
   if (!status.signedIn) throw new Error('云同步尚未登录：请先到“设置 → 云同步”完成邮箱登录，再连接饭搭子');
   if (!Sync.client) throw new Error('云同步客户端未就绪，请刷新页面重试');
+  setMealsRpcState('warn', '请求中');
   const result = await Promise.race([
     Sync.client.rpc('get_meals', {
       p_api_key: mealsKey(),
@@ -1797,16 +1808,27 @@ async function mealsFetch(params, timeoutMs) {
   ]);
   if (result.error) {
     const msg = result.error.message || '';
-    if (msg.includes('Could not find the function') || msg.includes('does not exist') || msg.includes('Could not find'))
+    if (msg.includes('Could not find the function') || msg.includes('does not exist') || msg.includes('Could not find')) {
+      setMealsRpcState('bad', '函数未创建');
       throw new Error('数据库函数 get_meals 未创建：请在饮食页展开说明，把 SQL 粘贴到 Supabase SQL Editor 并点击 Run');
-    if (msg.includes('http') || msg.includes('extensions') || msg.includes('http_request'))
+    }
+    if (msg.includes('http') || msg.includes('extensions') || msg.includes('http_request')) {
+      setMealsRpcState('bad', 'http扩展错误');
       throw new Error('Supabase http 扩展未启用或函数配置错误：请在 Database → Extensions 启用 http 后重新运行 SQL');
-    if (msg.includes('Not authenticated') || msg.includes('JWT') || msg.includes('auth'))
+    }
+    if (msg.includes('Not authenticated') || msg.includes('JWT') || msg.includes('auth')) {
+      setMealsRpcState('bad', '登录会话失效');
       throw new Error('Supabase 登录会话无效：请到设置退出登录后重新登录');
+    }
+    setMealsRpcState('bad', 'RPC错误');
     throw new Error('Supabase RPC 错误：' + msg);
   }
   const json = result.data;
-  if (!json || !json.success) throw new Error((json && json.error) || '饭搭子接口返回异常');
+  if (!json || !json.success) {
+    setMealsRpcState('bad', '上游返回异常');
+    throw new Error((json && json.error) || '饭搭子接口返回异常');
+  }
+  setMealsRpcState('ok', 'RPC正常');
   return json.data;
 }
 
@@ -1838,7 +1860,7 @@ function mealItemHtml(m) {
 async function loadMeals(force) {
   const box = document.getElementById('mealsContent');
   if (!box) return;
-  renderMealsDiagnostics(box);
+  await renderMealsDiagnostics(box);
 
   if (loadMeals._busy) return;
   loadMeals._busy = true;
@@ -1884,6 +1906,7 @@ async function loadMeals(force) {
       payload = await mealsFetch({ from: from, to: to, limit: 100 });
       lsSet(MEALS_CACHE, { fetchedAt: Date.now(), data: payload });
     } catch (e) {
+      setMealsRpcState('bad', e.message && e.message.includes('超时') ? '请求超时' : 'RPC失败');
       box.innerHTML = `<div class="card" style="padding:24px;color:var(--text-muted)">⚠️ 拉取失败：${esc(e.message)}<br><br>
         <button class="btn-secondary" onclick="mealsClearKey()">换 Key</button>
         <button class="btn-primary" onclick="loadMeals(true)">重试</button></div>`;
