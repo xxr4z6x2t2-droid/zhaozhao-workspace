@@ -1711,12 +1711,15 @@ async function shareWorkspace() {
 }
 
 // ===== 饮食记录（饭搭子开放接口，只读拉取） =====
-// fandazi 接口无 CORS 头，浏览器直连被拦，走自家 Supabase Edge Function 代理
-const MEALS_PROXY = 'https://whmjurdqzzbitpwsuliq.supabase.co/functions/v1/meals';
+// fandazi 接口无 CORS 头，浏览器直连被拦，走代理中转
+// 代理地址可配置：默认 Supabase Edge Function，也可填 Cloudflare Workers 地址
+const MEALS_PROXY_DEFAULT = 'https://whmjurdqzzbitpwsuliq.supabase.co/functions/v1/meals';
+const MEALS_PROXY_STORAGE = 'zhaozhao-meals-proxy';
 const MEALS_KEY_STORAGE = 'zhaozhao-meals-key';
 const MEALS_CACHE = 'zhaozhao-meals-cache'; // { fetchedAt, data }，仅本机缓存，不参与云同步
 
 function mealsKey() { return (localStorage.getItem(MEALS_KEY_STORAGE) || '').trim(); }
+function mealsProxy() { return (localStorage.getItem(MEALS_PROXY_STORAGE) || MEALS_PROXY_DEFAULT).trim(); }
 
 async function mealsFetch(params, timeoutMs) {
   timeoutMs = timeoutMs || 12000;
@@ -1725,14 +1728,18 @@ async function mealsFetch(params, timeoutMs) {
   try {
     // key 走 query 参数（简单请求无预检）；代理端补上 x-api-key 头转发给饭搭子
     const qs = '?' + new URLSearchParams(Object.assign({}, params || {}, { key: mealsKey() })).toString();
-    // 带上 Supabase anon key 鉴权头（若已配置云同步），Verify JWT 开着也能通；OPTIONS 预检由代理函数应答
-    const supaKey = (localStorage.getItem('zhaozhao-supabase-key') || '').trim();
-    const headers = supaKey ? { 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey } : {};
-    const res = await fetch(MEALS_PROXY + qs, { headers: headers, signal: ctrl.signal });
+    // 带上 Supabase anon key 鉴权头（若代理是 Supabase 且已配置云同步），Verify JWT 开着也能通
+    const headers = {};
+    if (mealsProxy().includes('supabase.co')) {
+      const supaKey = (localStorage.getItem('zhaozhao-supabase-key') || '').trim();
+      if (supaKey) { headers['apikey'] = supaKey; headers['Authorization'] = 'Bearer ' + supaKey; }
+    }
+    const res = await fetch(mealsProxy() + qs, { headers: headers, signal: ctrl.signal });
     if (!res.ok) {
       let msg = 'HTTP ' + res.status;
-      if (res.status === 401) msg = '鉴权失败（HTTP 401）：要么没配云同步、要么需在函数 Details 关闭 Verify JWT';
-      if (res.status === 404) msg = '代理函数未部署：请在 Supabase → Edge Functions 创建名为 meals 的函数（详见说明）';
+      if (res.status === 401) msg = '鉴权失败（HTTP 401）：代理需要鉴权但未通过，可换用 Cloudflare Workers 代理（无需鉴权）';
+      if (res.status === 404) msg = '代理未部署：请按饮食页说明部署代理（Supabase Edge Function 或 Cloudflare Workers）';
+      if (res.status === 403 && mealsProxy().includes('supabase.co')) msg = 'Supabase 鉴权被拒（403）：建议改用 Cloudflare Workers 代理（更简单，详见饮食页说明）';
       try { const j = await res.json(); if (j.error) msg = j.error; } catch(e) {}
       throw new Error(msg);
     }
@@ -1778,6 +1785,41 @@ async function loadMeals(force) {
         <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px">
           输入饭搭子 App「设置 → 开放接口」里的 API Key，连接后在这里展示你每天吃了什么、吃得怎么样。只读展示，Key 只保存在本机浏览器，不进仓库不上云。
         </p>
+        <details style="margin:0 0 12px;padding:8px 12px;background:var(--bg-secondary);border-radius:8px;font-size:12px;color:var(--text-muted)">
+          <summary style="cursor:pointer;font-weight:600;color:var(--text-primary)">⚠️ 需先部署代理（饭搭子接口不允许网页直连，点开看步骤）</summary>
+          <div style="margin-top:10px;line-height:1.8">
+            <b>方案 A：Cloudflare Workers（推荐，最简单）</b><br>
+            1. 打开 <a href="https://dash.cloudflare.com" target="_blank">dash.cloudflare.com</a> → 注册（免费，免信用卡）<br>
+            2. 左侧 Workers & Pages → Create → Create Worker → 取名 meals → Deploy<br>
+            3. 点 Edit code → 删光模板代码 → 粘贴下方代码 → Deploy<br>
+            4. 复制地址栏的 URL（形如 <code>https://meals.你的名字.workers.dev</code>）<br>
+            5. 填到下方「代理地址」框<br><br>
+            <b>方案 B：Supabase Edge Function</b><br>
+            去 Supabase Dashboard → Edge Functions → 创建名为 meals 的函数 → 粘贴同样代码 → Deploy<br>
+            地址填 <code>https://whmjurdqzzbitpwsuliq.supabase.co/functions/v1/meals</code><br><br>
+            <b>代理代码（两种方案通用）：</b><br>
+            <textarea readonly style="width:100%;height:120px;font-size:10px;margin-top:4px;font-family:monospace" onclick="this.select()">export default {
+  async fetch(request) {
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,OPTIONS', 'Access-Control-Allow-Headers': '*' };
+    if (request.method === 'OPTIONS') return new Response('ok', { headers: cors });
+    const u = new URL(request.url);
+    const key = u.searchParams.get('key') || '';
+    if (!key) return new Response(JSON.stringify({ success: false, error: '缺少 key' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
+    const qs = new URLSearchParams();
+    for (const p of ['from','to','limit','date']) { const v = u.searchParams.get(p); if (v) qs.set(p, v); }
+    try {
+      const r = await fetch('https://fandazi.coze.site/api/open/meals?' + qs, { headers: { 'x-api-key': key } });
+      return new Response(await r.text(), { status: r.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+    } catch (e) {
+      return new Response(JSON.stringify({ success: false, error: '上游失败: ' + e }), { status: 502, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+  }
+};</textarea>
+          </div>
+        </details>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="text" id="mealsProxyInput" placeholder="代理地址（如 https://meals.xxx.workers.dev）" value="${esc(mealsProxy() === MEALS_PROXY_DEFAULT ? '' : mealsProxy())}" style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter')document.getElementById('mealsKeyInput').focus()">
+        </div>
         <div class="event-form" style="display:flex">
           <input type="text" id="mealsKeyInput" placeholder="fdz_ 开头的 API Key" style="flex:1" onkeydown="if(event.key==='Enter')saveMealsKey()">
           <button class="btn-primary" onclick="saveMealsKey()">连接</button>
@@ -1842,13 +1884,18 @@ function saveMealsKey() {
   const v = (document.getElementById('mealsKeyInput').value || '').trim();
   if (!v) { alert('请输入 API Key'); return; }
   localStorage.setItem(MEALS_KEY_STORAGE, v);
+  // 保存代理地址（如果用户填了的话）
+  const proxy = (document.getElementById('mealsProxyInput')?.value || '').trim();
+  if (proxy) localStorage.setItem(MEALS_PROXY_STORAGE, proxy);
+  else localStorage.removeItem(MEALS_PROXY_STORAGE);
   localStorage.removeItem(MEALS_CACHE);
   loadMeals(true);
 }
 
 function mealsClearKey() {
-  if (!confirm('断开饭搭子连接？（只清除本机保存的 Key，不影响饭搭子 App 里的数据）')) return;
+  if (!confirm('断开饭搭子连接？（只清除本机保存的 Key 和代理地址，不影响饭搭子 App 里的数据）')) return;
   localStorage.removeItem(MEALS_KEY_STORAGE);
+  localStorage.removeItem(MEALS_PROXY_STORAGE);
   localStorage.removeItem(MEALS_CACHE);
   loadMeals();
 }
