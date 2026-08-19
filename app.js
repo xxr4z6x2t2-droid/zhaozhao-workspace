@@ -1,4 +1,4 @@
-// ===== 昭朝工作台 v2.2 — 纯静态 localStorage 版 =====
+// ===== 昭朝工作台 v2.6 — 饮食诊断与安全修复版 =====
 // 所有数据存储在浏览器 localStorage，无需后端服务器
 // 可部署到任何静态托管服务（CloudStudio / GitHub Pages / Vercel 等）
 
@@ -14,6 +14,11 @@ function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+function safeUrl(s) {
+  try { const u = new URL(String(s || ''), location.href); return /^https?:$/.test(u.protocol) ? esc(u.href) : '#'; }
+  catch { return '#'; }
+}
+function safeColor(s) { return /^#[0-9a-fA-F]{3,8}$/.test(String(s || '')) ? String(s) : '#888'; }
 
 // ===== 默认数据 =====
 const DEFAULT_WEIGHT = { records: [], goal: 75 };
@@ -80,8 +85,8 @@ function renderThemeGrid() {
         <div style="background:${t.colors[1]}"></div>
         <div style="background:${t.colors[2]}"></div>
       </div>
-      <div class="theme-card-name">${t.name}</div>
-      <div class="theme-card-desc">${t.desc}</div>
+      <div class="theme-card-name">${esc(t.name)}</div>
+      <div class="theme-card-desc">${esc(t.desc)}</div>
     </div>
   `).join('');
 }
@@ -90,8 +95,9 @@ function renderThemeGrid() {
 async function exportData() {
   try {
     const backup = {
-      version: '2.4',
+      version: '2.6',
       exportedAt: new Date().toISOString(),
+      diary: lsGet('zhaozhao-diary', []),
       theme: currentTheme,
       modules: lsGet('zhaozhao-modules', []),
       weatherCity: localStorage.getItem('zhaozhao-weather-city') || '',
@@ -132,6 +138,7 @@ async function importData(event) {
     if (data.ledger) lsSet('zhaozhao-ledger', data.ledger);
     if (data.reading) lsSet('zhaozhao-reading', data.reading);
     if (data.worklog) lsSet('zhaozhao-worklog', data.worklog);
+    if (data.diary) lsSet('zhaozhao-diary', data.diary);
     if (data.modules) lsSet('zhaozhao-modules', data.modules);
     if (data.weatherCity) localStorage.setItem('zhaozhao-weather-city', data.weatherCity);
     if (data.theme) applyTheme(data.theme);
@@ -319,11 +326,11 @@ async function loadDashboard() {
         <div class="hotspot-sections">
           ${hotspots.sections.length ? hotspots.sections.map(sec => `
             <div class="hotspot-group">
-              <div class="hotspot-group-title">${sec.title}</div>
+              <div class="hotspot-group-title">${esc(sec.title)}</div>
               ${sec.items.map(item => `
-                <a class="hotspot-item" href="${item.url||'#'}" target="_blank" rel="noopener">
-                  <span class="hotspot-title">${item.title}</span>
-                  <span class="hotspot-source">${item.source||''}</span>
+                <a class="hotspot-item" href="${safeUrl(item.url)}" target="_blank" rel="noopener">
+                  <span class="hotspot-title">${esc(item.title)}</span>
+                  <span class="hotspot-source">${esc(item.source||'')}</span>
                 </a>
               `).join('')}
             </div>
@@ -538,7 +545,7 @@ function editWeatherCity() {
   const label = document.getElementById('weatherCityLabel');
   if (!label) return;
   const oldCity = label.dataset.city || label.textContent.replace('天气','');
-  label.innerHTML = `<input id="weatherCityInput" value="${oldCity}" style="width:70px;padding:2px 4px;font-size:14px" onkeydown="if(event.key==='Enter')saveWeatherCity()" onblur="saveWeatherCity()">`;
+  label.innerHTML = `<input id="weatherCityInput" value="${esc(oldCity)}" style="width:70px;padding:2px 4px;font-size:14px" onkeydown="if(event.key==='Enter')saveWeatherCity()" onblur="saveWeatherCity()">`;
   const input = document.getElementById('weatherCityInput');
   input.focus();
   input.select();
@@ -656,7 +663,7 @@ async function loadKnowledge() {
   ];
   document.getElementById('knowledgeList').innerHTML = allFiles.length ? allFiles.map(f => `
     <div class="knowledge-item">
-      <span class="knowledge-name" onclick="viewKnowledge('${encodeURIComponent(f.name)}')" title="点击查看内容">📄 ${f.name}</span>
+      <span class="knowledge-name" onclick="viewKnowledge('${encodeURIComponent(f.name)}')" title="点击查看内容">📄 ${esc(f.name)}</span>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="knowledge-meta">${f.type === 'wiki' ? '结构化知识' : '原始资料'}</span>
         <button class="btn-secondary" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();deleteKnowledge('${encodeURIComponent(f.name)}')">删除</button>
@@ -732,8 +739,8 @@ function searchKnowledge() {
   const results = allFiles.filter(f => f.name.toLowerCase().includes(q) || f.content.toLowerCase().includes(q));
   document.getElementById('knowledgeList').innerHTML = results.length ? results.map(r => `
     <div class="knowledge-item">
-      <span class="knowledge-name" onclick="viewKnowledge('${encodeURIComponent(r.name)}')">📄 ${r.name}</span>
-      <div style="font-size:12px;color:var(--text-muted)">${r.content.substring(0,80)}...</div>
+      <span class="knowledge-name" onclick="viewKnowledge('${encodeURIComponent(r.name)}')">📄 ${esc(r.name)}</span>
+      <div style="font-size:12px;color:var(--text-muted)">${esc(r.content.substring(0,80))}...</div>
     </div>
   `).join('') : '<div class="knowledge-item" style="color:var(--text-muted)">无匹配结果</div>';
 }
@@ -757,8 +764,8 @@ async function loadEvents() {
       <div style="display:flex;align-items:center;gap:10px;flex:1">
         <input type="checkbox" ${e.completed?'checked':''} onchange="toggleEvent(${e.id})" style="width:auto">
         <div>
-          <div class="event-title">${e.title}${e.recurrence?` <span style="font-size:10px;opacity:0.6">${recurrenceDesc(e)}</span>`:''}${e.startDate?` <span style="font-size:11px;color:var(--text-muted)">(${fmtCalDate(e.startDate)}${!e.recurrence&&e.endDate&&e.endDate!==e.startDate?' ~ '+fmtCalDate(e.endDate):''})</span>`:''}</div>
-          ${e.content ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${e.content.substring(0,50)}</div>` : ''}
+          <div class="event-title">${esc(e.title)}${e.recurrence?` <span style="font-size:10px;opacity:0.6">${esc(recurrenceDesc(e))}</span>`:''}${e.startDate?` <span style="font-size:11px;color:var(--text-muted)">(${fmtCalDate(e.startDate)}${!e.recurrence&&e.endDate&&e.endDate!==e.startDate?' ~ '+fmtCalDate(e.endDate):''})</span>`:''}</div>
+          ${e.content ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(e.content.substring(0,50))}</div>` : ''}
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
@@ -1089,7 +1096,7 @@ function renderCalendar() {
     const maxShow = 3;
     daySchedules.slice(0, maxShow).forEach(s => {
       const isDone = s.completed || s._recurCompleted;
-      bars += `<div class="cal-event${isDone?' completed':''}" style="background:${s.color||'#888'}" onclick="event.stopPropagation();showCalPopup(${s.id},'${dateStr}')" title="${s.title}${s.recurrence?' 🔁':''}"><span class="cal-event-dot"></span><span class="cal-event-text">${s.title}</span></div>`;
+      bars += `<div class="cal-event${isDone?' completed':''}" style="background:${safeColor(s.color)}" onclick="event.stopPropagation();showCalPopup(${s.id},'${dateStr}')" title="${esc(s.title)}${s.recurrence?' 🔁':''}"><span class="cal-event-dot"></span><span class="cal-event-text">${esc(s.title)}</span></div>`;
     });
     if (daySchedules.length > maxShow) {
       bars += `<div class="cal-more" onclick="event.stopPropagation();showCalDayPopup('${dateStr}')">+${daySchedules.length - maxShow} 更多</div>`;
@@ -1133,9 +1140,9 @@ function renderCalendar() {
   });
   const legendHtml = monthSchedules.length ? monthSchedules.map(s => `
     <div class="cal-legend-item${s.completed?' completed':''}" onclick="showCalPopup(${s.id})">
-      <div class="cal-legend-color${s.completed?' completed':''}" style="background:${s.color||'#888'}"></div>
-      <span class="cal-legend-name">${s.title}${s.recurrence?' <span style="font-size:10px;opacity:0.6">🔁</span>':''}</span>
-      <span class="cal-legend-date">${s.recurrence ? recurrenceDesc(s) : (fmtCalDate(s.startDate)+(s.endDate&&s.endDate!==s.startDate?' ~ '+fmtCalDate(s.endDate):''))}</span>
+      <div class="cal-legend-color${s.completed?' completed':''}" style="background:${safeColor(s.color)}"></div>
+      <span class="cal-legend-name">${esc(s.title)}${s.recurrence?' <span style="font-size:10px;opacity:0.6">🔁</span>':''}</span>
+      <span class="cal-legend-date">${esc(s.recurrence ? recurrenceDesc(s) : (fmtCalDate(s.startDate)+(s.endDate&&s.endDate!==s.startDate?' ~ '+fmtCalDate(s.endDate):'')))}</span>
       <span class="cal-legend-done${s.completed?' done':''}" onclick="event.stopPropagation();toggleEvent(${s.id})">${s.completed?'✓ 已完成':'标记完成'}</span>
     </div>
   `).join('') : '<div style="font-size:13px;color:var(--text-muted);padding:8px">本月暂无日程</div>';
@@ -1175,13 +1182,13 @@ function showCalPopup(id, dateStr) {
   overlay.onclick = function(ev) { if (ev.target === overlay) overlay.remove(); };
   overlay.innerHTML = `<div class="cal-popup-content">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      ${e.startDate?`<div style="width:12px;height:12px;border-radius:3px;background:${e.color||'#888'};flex-shrink:0"></div>`:''}
-      <div class="cal-popup-title">${e.title}</div>
+      ${e.startDate?`<div style="width:12px;height:12px;border-radius:3px;background:${safeColor(e.color)};flex-shrink:0"></div>`:''}
+      <div class="cal-popup-title">${esc(e.title)}</div>
     </div>
     ${isRecur ? `<div class="cal-popup-info">🔄 ${recurrenceDesc(e)} · 起始 ${e.startDate||'今天'}</div>` : ''}
     ${e.startDate?`<div class="cal-popup-info">📅 ${e.startDate}${e.endDate&&e.endDate!==e.startDate&&!isRecur?' ~ '+e.endDate:''}</div>`:''}
     ${dateStr?`<div class="cal-popup-info">📍 选中日期：${dateStr}</div>`:''}
-    ${e.content?`<div class="cal-popup-info">📝 ${e.content}</div>`:''}
+    ${e.content?`<div class="cal-popup-info">📝 ${esc(e.content)}</div>`:''}
     <div class="cal-popup-info">状态：${isDone?'✅ 已完成':'⏳ 进行中'}</div>
     <div class="cal-popup-actions">
       <button class="btn-primary" onclick="toggleEvent(${e.id},'${dateStr||''}');document.querySelector('.cal-popup').remove();">${isDone?'↩ 取消完成':'✅ 标记完成'}</button>
@@ -1204,7 +1211,7 @@ function showCalDayPopup(dateStr) {
       const done = s.completed || rDone;
       return `<div class="cal-legend-item${done?' completed':''}" style="margin-bottom:4px" onclick="document.querySelector('.cal-popup').remove();showCalPopup(${s.id},'${dateStr}')">
         <div class="cal-legend-color${done?' completed':''}" style="background:${s.color||'#888'}"></div>
-        <span class="cal-legend-name">${s.title}${s.recurrence?' 🔁':''}</span>
+        <span class="cal-legend-name">${esc(s.title)}${s.recurrence?' 🔁':''}</span>
         <span class="cal-legend-done${done?' done':''}">${done?'已完成':'进行中'}</span>
       </div>`;
     }).join('') : '<div class="cal-popup-info">当天没有日程</div>'}
@@ -1435,8 +1442,8 @@ async function loadHabitsTab() {
         ${data.habits.map(h => `
           <div style="display:flex;align-items:center;gap:4px">
             <button class="habit-check ${todayLogs[h.id]?'done':''}" onclick="toggleHabit('${h.id}')">
-              <span class="habit-check-icon">${h.icon}</span>
-              <span>${h.name}</span>
+              <span class="habit-check-icon">${esc(h.icon)}</span>
+              <span>${esc(h.name)}</span>
             </button>
             <button class="btn-secondary" style="padding:2px 6px;font-size:10px" onclick="deleteHabit('${h.id}')" title="删除习惯">✕</button>
           </div>
@@ -1587,7 +1594,7 @@ async function loadReadingTab() {
       <div class="data-list" id="readingList">
         ${data.books.length ? data.books.map(b => `
           <div class="data-item">
-            <div style="flex:1"><b>${b.title}</b>${b.author ? ' - ' + b.author : ''}</div>
+            <div style="flex:1"><b>${esc(b.title)}</b>${b.author ? ' - ' + esc(b.author) : ''}</div>
             <div style="display:flex;align-items:center;gap:8px">
               ${b.status === 'reading' ? `
                 <input type="number" id="page-${b.id}" value="${b.currentPage}" min="0" max="${b.totalPages}" style="width:60px;padding:4px 6px" onchange="updateBookPage(${b.id})">
@@ -1673,7 +1680,7 @@ function renderWorklogList(logs) {
   const el = document.getElementById('worklogList');
   if (!el) return;
   el.innerHTML = logs.length ? logs.slice(0, 30).map(l =>
-    `<div class="data-item"><span>${l.date} ${l.title}</span><span>${l.hours}h <button class="btn-secondary" style="padding:2px 8px;font-size:11px;margin-left:8px" onclick="deleteWorklog(${l.id})">🗑️</button></span></div>`
+    `<div class="data-item"><span>${esc(l.date)} ${esc(l.title)}</span><span>${l.hours}h <button class="btn-secondary" style="padding:2px 8px;font-size:11px;margin-left:8px" onclick="deleteWorklog(${l.id})">🗑️</button></span></div>`
   ).join('') : '<div class="data-item" style="text-align:center;color:var(--text-muted)">暂无记录</div>';
 }
 
@@ -1711,12 +1718,39 @@ async function shareWorkspace() {
 }
 
 // ===== 饮食记录（饭搭子开放接口，只读拉取） =====
-// 饭搭子接口无 CORS 头，浏览器直连被拦，走 Supabase 数据库函数(pg_net)中转
+// 饭搭子接口无 CORS 头，浏览器直连被拦，走 Supabase 数据库函数(http)中转
 // 只需在 Supabase SQL Editor 跑一次建函数脚本，无需部署任何 Edge Function / Worker
 const MEALS_KEY_STORAGE = 'zhaozhao-meals-key';
 const MEALS_CACHE = 'zhaozhao-meals-cache';
 
 function mealsKey() { return (localStorage.getItem(MEALS_KEY_STORAGE) || '').trim(); }
+
+async function waitForSyncGlobal(timeoutMs) {
+  const until = Date.now() + (timeoutMs || 8000);
+  while (typeof Sync === 'undefined' && Date.now() < until) await new Promise(r => setTimeout(r, 100));
+  if (typeof Sync === 'undefined') throw new Error('云同步模块尚未加载，请刷新页面后重试');
+  return Sync;
+}
+
+async function renderMealsDiagnostics(box) {
+  const el = document.getElementById('mealsDiagnostics');
+  if (!el) return;
+  const key = mealsKey();
+  let syncState = { configured: false, signedIn: false };
+  try {
+    if (typeof Sync !== 'undefined') {
+      await Sync.waitReady();
+      syncState = await Sync.sessionStatus();
+    }
+  } catch (e) { syncState.error = e.message || String(e); }
+  const items = [
+    { label: '饭搭子 Key', state: key ? 'ok' : 'bad', detail: key ? '已填写' : '未填写' },
+    { label: 'Supabase 配置', state: syncState.configured ? 'ok' : 'bad', detail: syncState.configured ? '已配置' : '未配置' },
+    { label: '云同步登录', state: syncState.signedIn ? 'ok' : 'warn', detail: syncState.signedIn ? (syncState.email || '已登录') : '未登录' },
+    { label: '请求通道', state: syncState.signedIn ? 'warn' : 'bad', detail: syncState.signedIn ? 'RPC待验证' : '等待云登录' }
+  ];
+  el.innerHTML = items.map(x => `<span class="meals-diagnostic ${x.state}"><i class="dot"></i>${esc(x.label)}：${esc(x.detail)}</span>`).join('');
+}
 
 const MEALS_SQL = `create extension if not exists http with schema extensions;
 
@@ -1747,27 +1781,33 @@ grant execute on function public.get_meals(text, text, text) to authenticated;`;
 
 async function mealsFetch(params, timeoutMs) {
   timeoutMs = timeoutMs || 15000;
-  // 走 Supabase RPC（无 CORS 问题，数据走你自己 Supabase 中转）
-  if (typeof Sync !== 'undefined' && Sync.client) {
-    const result = await Promise.race([
-      Sync.client.rpc('get_meals', {
-        p_api_key: mealsKey(),
-        p_from: (params && params.from) || null,
-        p_to: (params && params.to) || null
-      }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), timeoutMs))
-    ]);
-    if (result.error) {
-      const msg = result.error.message || '';
-      if (msg.includes('Could not find the function') || msg.includes('does not exist') || msg.includes('Could not find'))
-        throw new Error('数据库函数未创建：请在 Supabase SQL Editor 运行建函数脚本（点开下方说明复制 SQL）');
-      throw new Error(msg);
-    }
-    const json = result.data;
-    if (!json || !json.success) throw new Error((json && json.error) || '接口返回异常');
-    return json.data;
+  await waitForSyncGlobal();
+  await Sync.waitReady();
+  const status = await Sync.sessionStatus();
+  if (!status.configured) throw new Error('未配置 Supabase 云同步：请先到“设置 → 云同步”填写项目 URL 和 anon key');
+  if (!status.signedIn) throw new Error('云同步尚未登录：请先到“设置 → 云同步”完成邮箱登录，再连接饭搭子');
+  if (!Sync.client) throw new Error('云同步客户端未就绪，请刷新页面重试');
+  const result = await Promise.race([
+    Sync.client.rpc('get_meals', {
+      p_api_key: mealsKey(),
+      p_from: (params && (params.from || params.date)) || null,
+      p_to: (params && (params.to || params.date)) || null
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时：Supabase 数据库函数或饭搭子接口未响应')), timeoutMs))
+  ]);
+  if (result.error) {
+    const msg = result.error.message || '';
+    if (msg.includes('Could not find the function') || msg.includes('does not exist') || msg.includes('Could not find'))
+      throw new Error('数据库函数 get_meals 未创建：请在饮食页展开说明，把 SQL 粘贴到 Supabase SQL Editor 并点击 Run');
+    if (msg.includes('http') || msg.includes('extensions') || msg.includes('http_request'))
+      throw new Error('Supabase http 扩展未启用或函数配置错误：请在 Database → Extensions 启用 http 后重新运行 SQL');
+    if (msg.includes('Not authenticated') || msg.includes('JWT') || msg.includes('auth'))
+      throw new Error('Supabase 登录会话无效：请到设置退出登录后重新登录');
+    throw new Error('Supabase RPC 错误：' + msg);
   }
-  throw new Error('未连接云同步：请先在工作台设置中完成 Supabase 云同步登录，再在 SQL Editor 运行建函数脚本');
+  const json = result.data;
+  if (!json || !json.success) throw new Error((json && json.error) || '饭搭子接口返回异常');
+  return json.data;
 }
 
 function mealsStars(rating) {
@@ -1798,8 +1838,13 @@ function mealItemHtml(m) {
 async function loadMeals(force) {
   const box = document.getElementById('mealsContent');
   if (!box) return;
+  renderMealsDiagnostics(box);
+
+  if (loadMeals._busy) return;
+  loadMeals._busy = true;
   const key = mealsKey();
   if (!key) {
+    loadMeals._busy = false;
     box.innerHTML = `
       <div class="card" style="padding:20px">
         <h3 style="margin:0 0 8px">🍽️ 连接饭搭子</h3>
@@ -1842,10 +1887,12 @@ async function loadMeals(force) {
       box.innerHTML = `<div class="card" style="padding:24px;color:var(--text-muted)">⚠️ 拉取失败：${esc(e.message)}<br><br>
         <button class="btn-secondary" onclick="mealsClearKey()">换 Key</button>
         <button class="btn-primary" onclick="loadMeals(true)">重试</button></div>`;
+      loadMeals._busy = false;
       return;
     }
   }
 
+  loadMeals._busy = false;
   const meals = payload.meals || [];
   const rated = meals.filter(m => m.rating);
   const avg = rated.length ? (rated.reduce((s, m) => s + m.rating, 0) / rated.length).toFixed(1) : '--';
@@ -1904,7 +1951,8 @@ async function updateMealsCard() {
     return;
   }
   try {
-    const data = await mealsFetch({ date: fmtDate(new Date()) }, 8000);
+    const today = fmtDate(new Date());
+    const data = await mealsFetch({ from: today, to: today, date: today }, 8000);
     const meals = data.meals || [];
     badge.textContent = meals.length + ' 餐';
     list.innerHTML = meals.length
@@ -1940,7 +1988,7 @@ function addModule() {
     const section = document.createElement('section');
     section.className = 'page';
     section.id = 'page-' + id;
-    section.innerHTML = `<div class="page-header"><h2>📌 ${name}</h2><span class="page-subtitle">自定义模块</span></div><p style="color:var(--text-muted)">这是一个空白模块，你可以在这里添加内容。</p>`;
+    section.innerHTML = `<div class="page-header"><h2>📌 ${esc(name)}</h2><span class="page-subtitle">自定义模块</span></div><p style="color:var(--text-muted)">这是一个空白模块，你可以在这里添加内容。</p>`;
     main.appendChild(section);
   }
   showToast('成功', '模块已添加', name);
