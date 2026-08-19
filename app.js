@@ -1843,21 +1843,23 @@ async function mealsFetch(params, timeoutMs) {
   let resultData = null;
   try { resultData = rawText ? JSON.parse(rawText) : null; } catch (e) { resultData = rawText; }
   if (!response.ok) {
-    const msg = typeof resultData === 'string' ? resultData : (resultData && (resultData.message || resultData.error || resultData.hint)) || ('HTTP ' + response.status);
-    if (msg.includes('Could not find the function') || msg.includes('does not exist') || msg.includes('Could not find') || response.status === 404) {
-      setMealsRpcState('bad', '函数未创建');
-      throw new Error('数据库函数 get_meals 未创建：请重新复制最新版 SQL（含 notify pgrst）到 Supabase SQL Editor，整段执行并确认 Success');
+    const msg = typeof resultData === 'string' ? resultData : (resultData && (resultData.message || resultData.error || resultData.hint || resultData.details)) || ('HTTP ' + response.status);
+    const raw = typeof resultData === 'string' ? resultData : JSON.stringify(resultData || {});
+    const fnMissing = /Could not find the function|PGRST202|public\.get_meals/i.test(raw);
+    if (fnMissing) {
+      setMealsRpcState('bad', '函数未进入API');
+      throw new Error('Supabase API 找不到 get_meals（HTTP ' + response.status + '）：SQL 可能已执行，但函数尚未进入 API schema。请执行核验 SQL，并把结果发我。原始信息：' + msg);
     }
     if (msg.includes('http') || msg.includes('extensions') || msg.includes('http_request')) {
       setMealsRpcState('bad', 'http扩展错误');
-      throw new Error('Supabase http 扩展未启用或函数配置错误：请在 Database → Extensions 启用 http 后重新运行 SQL');
+      throw new Error('Supabase http 扩展未启用或函数配置错误（HTTP ' + response.status + '）：' + msg);
     }
     if (msg.includes('Not authenticated') || msg.includes('JWT') || msg.includes('auth') || response.status === 401) {
       setMealsRpcState('bad', '登录会话失效');
-      throw new Error('Supabase 登录会话无效：请到设置退出登录后重新登录');
+      throw new Error('Supabase 登录会话无效（HTTP ' + response.status + '）：请到设置退出登录后重新登录。' + msg);
     }
     setMealsRpcState('bad', 'RPC错误');
-    throw new Error('Supabase RPC 错误：' + msg);
+    throw new Error('Supabase RPC 错误（HTTP ' + response.status + '）：' + msg);
   }
   const json = resultData;
   if (!json || !json.success) {
