@@ -141,7 +141,7 @@
     return {
       app: 'zhaozhao-workspace',
       export: 'diary',
-      version: '2.4',
+      version: '2.6',
       date: dateStr,
       weekday: WEEKDAYS[d.getDay()],
       city: city,
