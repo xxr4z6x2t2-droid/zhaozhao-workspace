@@ -1,9 +1,9 @@
 {
-  "date": "2026-08-18",
-  "updated": "2026-08-18T23:36:38.792Z",
+  "date": "2026-08-21",
+  "updated": "2026-08-21T00:32:20.336Z",
   "gold": {
-    "price_cny": "940.73",
-    "price_usd": "4332.80",
+    "price_cny": "979.60",
+    "price_usd": "4516.60",
     "unit": "元/克",
     "usd_unit": "美元/盎司",
     "source": "gold-api.com"
@@ -13,28 +13,28 @@
       "title": "📰 今日要闻",
       "items": [
         {
-          "title": "7月70城房价出炉：17城新房价格环比上涨，杭州涨0.3%领跑；一线城市二手房连续5个月上涨，广州涨幅居首"
+          "title": "今年第 18 号台风 “沙德尔” 生成，最强可达超强台风级别，存在登陆我国可能"
         },
         {
-          "title": "统计局：1-7月份社会消费品零售总额同比增长1.2%，市场销售规模扩大"
+          "title": "上海楼市 “沪八条” 落地：外环外二套房首付比例降至 15%，最高 8 万元补贴支持 “以旧换新”"
         },
         {
-          "title": "多地婚姻登记机关宣布：七夕节不间断办公、延时服务；多地景区公告：新婚夫妻七夕节凭结婚证免门票"
+          "title": "全总：力争 5 年推动 35 万家以上用人单位建立工会"
         },
         {
-          "title": "北京拟出新规严管“地沟油”：废弃油脂定向收运，鼓励资源化利用"
+          "title": "交通运输部：以人工智能推动安全治理从 “事后处置” 转向 “事前预警”"
         },
         {
-          "title": "国家医保局：首次遴选158个基层病种“同病同付”，涉高血压、糖尿病等"
+          "title": "中国最大无人矿车青岛下线：驾驶室空无一人，一铲斗铲掘力达‌25 吨"
         },
         {
-          "title": "多地商场外墙广告“C位”让给科学家，网友称他们值得我们抬头仰望"
+          "title": "大数据杀熟又有新套路：平台出现 “优惠券游戏”，3 台手机竟显示 3 个价格"
         },
         {
-          "title": "BBA集体大降价：宝马5系跌至28万，奥迪A6L最大降幅超10万，部分高端车型优惠突破20万元"
+          "title": "合肥庐江周瑜广场周瑜雕像被泼红色油漆，官方回应：情况属实，人已被抓到"
         },
         {
-          "title": "iPhone 17系列或月底前全球涨价，单台最高多花近千元"
+          "title": "宇树科技上市次日接连失守两道整数关口，市值较高点蒸发超 1600 亿元"
         }
       ]
     },
@@ -42,44 +42,44 @@
       "title": "🔥 微博热搜",
       "items": [
         {
-          "title": "朱镕基同志生平",
-          "url": "https://s.weibo.com/weibo?q=%E6%9C%B1%E9%95%95%E5%9F%BA%E5%90%8C%E5%BF%97%E7%94%9F%E5%B9%B3",
-          "hot": "80.7万"
+          "title": "失业男子饿20天致肾衰竭",
+          "url": "https://s.weibo.com/weibo?q=%E5%A4%B1%E4%B8%9A%E7%94%B7%E5%AD%90%E9%A5%BF20%E5%A4%A9%E8%87%B4%E8%82%BE%E8%A1%B0%E7%AB%AD",
+          "hot": "136.1万"
         },
         {
-          "title": "七夕",
-          "url": "https://s.weibo.com/weibo?q=%E4%B8%83%E5%A4%95",
-          "hot": "59.8万"
+          "title": "我国气候异常",
+          "url": "https://s.weibo.com/weibo?q=%E6%88%91%E5%9B%BD%E6%B0%94%E5%80%99%E5%BC%82%E5%B8%B8",
+          "hot": "95.6万"
         },
         {
-          "title": "9部门发文活跃县域消费",
-          "url": "https://s.weibo.com/weibo?q=9%E9%83%A8%E9%97%A8%E5%8F%91%E6%96%87%E6%B4%BB%E8%B7%83%E5%8E%BF%E5%9F%9F%E6%B6%88%E8%B4%B9",
-          "hot": "44.6万"
+          "title": "中国铁路加速驶入AI赋能新阶段",
+          "url": "https://s.weibo.com/weibo?q=%E4%B8%AD%E5%9B%BD%E9%93%81%E8%B7%AF%E5%8A%A0%E9%80%9F%E9%A9%B6%E5%85%A5AI%E8%B5%8B%E8%83%BD%E6%96%B0%E9%98%B6%E6%AE%B5",
+          "hot": "90.7万"
         },
         {
-          "title": "睡前代谢皮质醇流程",
-          "url": "https://s.weibo.com/weibo?q=%E7%9D%A1%E5%89%8D%E4%BB%A3%E8%B0%A2%E7%9A%AE%E8%B4%A8%E9%86%87%E6%B5%81%E7%A8%8B",
-          "hot": "37.6万"
+          "title": "上海餐厅 必须用ig预定",
+          "url": "https://s.weibo.com/weibo?q=%E4%B8%8A%E6%B5%B7%E9%A4%90%E5%8E%85%20%E5%BF%85%E9%A1%BB%E7%94%A8ig%E9%A2%84%E5%AE%9A",
+          "hot": "90.6万"
         },
         {
-          "title": "胖东来招聘不包含性侵犯罪人员",
-          "url": "https://s.weibo.com/weibo?q=%E8%83%96%E4%B8%9C%E6%9D%A5%E6%8B%9B%E8%81%98%E4%B8%8D%E5%8C%85%E5%90%AB%E6%80%A7%E4%BE%B5%E7%8A%AF%E7%BD%AA%E4%BA%BA%E5%91%98",
-          "hot": "26.1万"
+          "title": "398一杯的芋圆葡萄",
+          "url": "https://s.weibo.com/weibo?q=398%E4%B8%80%E6%9D%AF%E7%9A%84%E8%8A%8B%E5%9C%86%E8%91%A1%E8%90%84",
+          "hot": "89.0万"
         },
         {
-          "title": "做事千万不要有状态洁癖",
-          "url": "https://s.weibo.com/weibo?q=%E5%81%9A%E4%BA%8B%E5%8D%83%E4%B8%87%E4%B8%8D%E8%A6%81%E6%9C%89%E7%8A%B6%E6%80%81%E6%B4%81%E7%99%96",
-          "hot": "25.5万"
+          "title": "张雪说送到统一为止",
+          "url": "https://s.weibo.com/weibo?q=%E5%BC%A0%E9%9B%AA%E8%AF%B4%E9%80%81%E5%88%B0%E7%BB%9F%E4%B8%80%E4%B8%BA%E6%AD%A2",
+          "hot": "63.2万"
         },
         {
-          "title": "上海2026社保基数公布",
-          "url": "https://s.weibo.com/weibo?q=%E4%B8%8A%E6%B5%B72026%E7%A4%BE%E4%BF%9D%E5%9F%BA%E6%95%B0%E5%85%AC%E5%B8%83",
-          "hot": "17.8万"
+          "title": "男子捡3根金条以为假的随手扔掉",
+          "url": "https://s.weibo.com/weibo?q=%E7%94%B7%E5%AD%90%E6%8D%A13%E6%A0%B9%E9%87%91%E6%9D%A1%E4%BB%A5%E4%B8%BA%E5%81%87%E7%9A%84%E9%9A%8F%E6%89%8B%E6%89%94%E6%8E%89",
+          "hot": "41.1万"
         },
         {
-          "title": "公积金",
-          "url": "https://s.weibo.com/weibo?q=%E5%85%AC%E7%A7%AF%E9%87%91",
-          "hot": "15.3万"
+          "title": "广州地铁回应母亲为孩子硬挤屏蔽门",
+          "url": "https://s.weibo.com/weibo?q=%E5%B9%BF%E5%B7%9E%E5%9C%B0%E9%93%81%E5%9B%9E%E5%BA%94%E6%AF%8D%E4%BA%B2%E4%B8%BA%E5%AD%A9%E5%AD%90%E7%A1%AC%E6%8C%A4%E5%B1%8F%E8%94%BD%E9%97%A8",
+          "hot": "33.3万"
         }
       ]
     },
@@ -87,44 +87,44 @@
       "title": "📌 今日头条",
       "items": [
         {
-          "title": "朱镕基同志生平",
-          "url": "https://www.toutiao.com/trending/7675264490950102571",
-          "hot": "5721.5万"
+          "title": "湖北通城集中销毁24辆“炸街”车",
+          "url": "https://www.toutiao.com/trending/7676080993283736074",
+          "hot": "8297.5万"
         },
         {
-          "title": "公积金新政来了",
-          "url": "https://www.toutiao.com/trending/7675219140914826771",
-          "hot": "5177.0万"
+          "title": "余承东官宣行业首发无网通信",
+          "url": "https://www.toutiao.com/trending/7675557271434772530",
+          "hot": "7507.9万"
         },
         {
-          "title": "60万亿元，打开消费增长新空间",
-          "url": "https://www.toutiao.com/article/7675239749976392211",
-          "hot": "4684.3万"
+          "title": "公积金新政来了，有哪些利好",
+          "url": "https://www.toutiao.com/article/7675651759070544418",
+          "hot": "6793.4万"
         },
         {
-          "title": "杭州酒局事件赵某峰郁某栋被刑拘",
-          "url": "https://www.toutiao.com/trending/7674909815030120454",
-          "hot": "4238.6万"
+          "title": "女子飞机排泄全机人被迫闻40分钟臭味",
+          "url": "https://www.toutiao.com/trending/7676120303755624970",
+          "hot": "6146.9万"
         },
         {
-          "title": "日本地震灾区有人假扮自卫队洗劫民宅",
-          "url": "https://www.toutiao.com/trending/7675341224756576319",
-          "hot": "3835.2万"
+          "title": "男子同学聚会拒敬酒遭殴打致死已判赔",
+          "url": "https://www.toutiao.com/trending/7676096789639987227",
+          "hot": "5562.0万"
         },
         {
-          "title": "女子凭基因认出十几年前同学的儿子",
-          "url": "https://www.toutiao.com/trending/7675325062584696851",
-          "hot": "3470.3万"
+          "title": "美空军欲采购中国大疆无人机有何意图",
+          "url": "https://www.toutiao.com/trending/7676155136497946166",
+          "hot": "5032.7万"
         },
         {
-          "title": "巴萨签下曼城中场罗德里",
-          "url": "https://www.toutiao.com/trending/7675510613929365055",
-          "hot": "3140.0万"
+          "title": "爷爷骑三轮过马路被误认成孙悟空",
+          "url": "https://www.toutiao.com/trending/7675959427137257535",
+          "hot": "4553.8万"
         },
         {
-          "title": "“泔水喂猪”被写入禁令",
-          "url": "https://www.toutiao.com/trending/7675360953654840882",
-          "hot": "2841.2万"
+          "title": "男子连饮两场酒后身亡 法院判了",
+          "url": "https://www.toutiao.com/trending/7675139241424306222",
+          "hot": "4120.4万"
         }
       ]
     }
